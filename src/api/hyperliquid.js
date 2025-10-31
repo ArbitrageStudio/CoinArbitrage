@@ -34,26 +34,14 @@ class HyperliquidApi {
       // 将symbol格式转换为Hyperliquid格式（去掉-USDT后缀）
       const hlSymbol = symbol.replace('-USDT', '');
       
-      // 获取所有市场数据
-      const response = await this.client.post('/info', {
-        type: 'meta'
-      });
-      const allAssets = response.data.universe;
-      
-      // 检查交易对是否存在（universe包含对象，不是字符串）
-      const assetExists = allAssets.some(asset => asset.name === hlSymbol);
-      if (!assetExists) {
-        throw new Error(`Symbol ${hlSymbol} not found in Hyperliquid`);
-      }
-      
-      // 获取特定交易对的行情数据
+      // 直接获取所有交易对的价格数据（更高效，避免多次API调用）
       const marketResponse = await this.client.post('/info', {
         type: 'allMids'
       });
       
       if (marketResponse.data) {
         const midPrice = marketResponse.data[hlSymbol];
-        if (midPrice) {
+        if (midPrice !== undefined) {
           return {
             symbol: symbol, // 保持与其他交易所一致的格式
             price: parseFloat(midPrice),
@@ -65,7 +53,7 @@ class HyperliquidApi {
             type: 'spot' // 标记为现货（实际是基于合约价格的模拟）
           };
         } else {
-          throw new Error(`No data returned for symbol ${hlSymbol}`);
+          throw new Error(`Symbol ${hlSymbol} not found in Hyperliquid allMids data`);
         }
       } else {
         throw new Error(`No data returned for symbol ${hlSymbol}`);
@@ -82,26 +70,14 @@ class HyperliquidApi {
       // 将symbol格式转换为Hyperliquid格式（去掉-USDT）
       const hlSymbol = symbol.replace('-USDT', '');
       
-      // 获取所有市场数据
-      const response = await this.client.post('/info', {
-        type: 'meta'
-      });
-      const allAssets = response.data.universe;
-      
-      // 检查交易对是否存在（universe包含对象，不是字符串）
-      const assetExists = allAssets.some(asset => asset.name === hlSymbol);
-      if (!assetExists) {
-        throw new Error(`Symbol ${hlSymbol} not found in Hyperliquid`);
-      }
-      
-      // 获取特定交易对的行情数据
+      // 直接获取所有交易对的价格数据（更高效，避免多次API调用）
       const marketResponse = await this.client.post('/info', {
         type: 'allMids'
       });
       
       if (marketResponse.data) {
         const midPrice = marketResponse.data[hlSymbol];
-        if (midPrice) {
+        if (midPrice !== undefined) {
           return {
             symbol: symbol, // 保持与其他交易所一致的格式
             price: parseFloat(midPrice),
@@ -114,7 +90,7 @@ class HyperliquidApi {
             contractSymbol: hlSymbol
           };
         } else {
-          throw new Error(`No data returned for symbol ${hlSymbol}`);
+          throw new Error(`Symbol ${hlSymbol} not found in Hyperliquid allMids data`);
         }
       } else {
         throw new Error(`No data returned for symbol ${hlSymbol}`);
@@ -125,40 +101,93 @@ class HyperliquidApi {
     }
   }
 
-  // 获取多个交易对的价格
+  // 获取多个交易对的价格（优化版本，单次API调用）
   async getMultipleTickers(symbols) {
     try {
-      const promises = symbols.map(symbol => this.getTicker(symbol));
-      const results = await Promise.allSettled(promises);
+      // 单次调用获取所有交易对的价格数据
+      const marketResponse = await this.client.post('/info', {
+        type: 'allMids'
+      });
       
-      return results.map((result, index) => {
-        if (result.status === 'fulfilled') {
-          return result.value;
-        } else {
-          console.error(`Failed to get ticker for ${symbols[index]}:`, result.reason.message);
-          return null;
+      if (!marketResponse.data) {
+        throw new Error('No data returned from Hyperliquid allMids endpoint');
+      }
+      
+      const allMids = marketResponse.data;
+      const results = [];
+      
+      for (const symbol of symbols) {
+        try {
+          const hlSymbol = symbol.replace('-USDT', '');
+          const midPrice = allMids[hlSymbol];
+          
+          if (midPrice !== undefined) {
+            results.push({
+              symbol: symbol,
+              price: parseFloat(midPrice),
+              bid: parseFloat(midPrice) * 0.999,
+              ask: parseFloat(midPrice) * 1.001,
+              volume: 0,
+              timestamp: Date.now(),
+              exchange: 'Hyperliquid',
+              type: 'spot'
+            });
+          } else {
+            console.warn(`Symbol ${hlSymbol} not found in Hyperliquid allMids data`);
+          }
+        } catch (error) {
+          console.error(`Failed to process ticker for ${symbol}:`, error.message);
         }
-      }).filter(ticker => ticker !== null);
+      }
+      
+      return results;
     } catch (error) {
       console.error('Hyperliquid getMultipleTickers error:', error.message);
       throw error;
     }
   }
 
-  // 获取多个交易对的合约价格
+  // 获取多个交易对的合约价格（优化版本，单次API调用）
   async getMultipleFuturesTickers(symbols) {
     try {
-      const promises = symbols.map(symbol => this.getFuturesTicker(symbol));
-      const results = await Promise.allSettled(promises);
+      // 单次调用获取所有交易对的价格数据
+      const marketResponse = await this.client.post('/info', {
+        type: 'allMids'
+      });
       
-      return results.map((result, index) => {
-        if (result.status === 'fulfilled') {
-          return result.value;
-        } else {
-          console.error(`Failed to get futures ticker for ${symbols[index]}:`, result.reason.message);
-          return null;
+      if (!marketResponse.data) {
+        throw new Error('No data returned from Hyperliquid allMids endpoint');
+      }
+      
+      const allMids = marketResponse.data;
+      const results = [];
+      
+      for (const symbol of symbols) {
+        try {
+          const hlSymbol = symbol.replace('-USDT', '');
+          const midPrice = allMids[hlSymbol];
+          
+          if (midPrice !== undefined) {
+            results.push({
+              symbol: symbol,
+              price: parseFloat(midPrice),
+              bid: parseFloat(midPrice) * 0.999,
+              ask: parseFloat(midPrice) * 1.001,
+              volume: 0,
+              timestamp: Date.now(),
+              exchange: 'Hyperliquid',
+              type: 'futures',
+              contractSymbol: hlSymbol
+            });
+          } else {
+            console.warn(`Symbol ${hlSymbol} not found in Hyperliquid allMids data`);
+          }
+        } catch (error) {
+          console.error(`Failed to process futures ticker for ${symbol}:`, error.message);
         }
-      }).filter(ticker => ticker !== null);
+      }
+      
+      return results;
     } catch (error) {
       console.error('Hyperliquid getMultipleFuturesTickers error:', error.message);
       throw error;
