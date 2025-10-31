@@ -60,9 +60,21 @@ class WebSocketManager {
       // 连接建立后订阅交易对信息
       const ws = this.wsConnections.get('hyperliquid');
       if (ws && ws.readyState === WebSocket.OPEN) {
-        // Hyperliquid使用info端点获取数据，WebSocket主要用于推送通知
-        // 这里我们使用REST API来获取价格数据，WebSocket用于连接状态检测
-        console.log('✅ Hyperliquid WebSocket连接成功（用于状态监测）');
+        // Hyperliquid需要发送订阅消息来保持连接活跃
+        // 订阅所有交易对的level2订单簿数据
+        const subscribeMsg = {
+          method: 'subscribe',
+          subscription: {
+            type: 'allMids'
+          }
+        };
+        
+        try {
+          ws.send(JSON.stringify(subscribeMsg));
+          console.log('✅ Hyperliquid WebSocket订阅成功 (allMids)');
+        } catch (error) {
+          console.error('❌ Hyperliquid订阅失败:', error.message);
+        }
       }
     });
   }
