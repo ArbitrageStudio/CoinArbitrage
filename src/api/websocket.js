@@ -5,6 +5,7 @@ class WebSocketManager {
     this.wsConnections = new Map();
     this.priceData = new Map();
     this.subscribers = new Set();
+    this.reconnectAttempts = new Map(); // 用于跟踪重连尝试次数
   }
 
   // Binance WebSocket连接
@@ -66,7 +67,7 @@ class WebSocketManager {
     });
   }
 
-  // 创建WebSocket连接
+  // 创建WebSocket连接（带自动重连功能）
   createConnection(exchange, url, messageHandler, onOpenCallback = null) {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(url);
@@ -97,11 +98,39 @@ class WebSocketManager {
         reject(error);
       });
 
-      ws.on('close', () => {
-        console.log(`❌ ${exchange} WebSocket连接关闭`);
+      ws.on('close', (code, reason) => {
+        console.log(`❌ ${exchange} WebSocket连接关闭 (code: ${code}, reason: ${reason || 'none'})`);
         this.wsConnections.delete(exchange);
+        
+        // 自动重连逻辑（非正常关闭时）
+        if (code !== 1000) { // 1000表示正常关闭
+          console.log(`🔄 尝试重新连接 ${exchange} WebSocket...`);
+          setTimeout(() => {
+            this.attemptReconnect(exchange, url, messageHandler, onOpenCallback);
+          }, 3000); // 3秒后重连
+        }
       });
     });
+  }
+
+  // 尝试重新连接
+  async attemptReconnect(exchange, url, messageHandler, onOpenCallback) {
+    try {
+      console.log(`🔄 正在重新连接 ${exchange} WebSocket...`);
+      await this.createConnection(exchange, url, messageHandler, onOpenCallback);
+      console.log(`✅ ${exchange} WebSocket重新连接成功`);
+    } catch (error) {
+      console.error(`❌ ${exchange} WebSocket重新连接失败:`, error.message);
+      
+      // 如果重连失败，继续尝试（指数退避）
+      const retryDelay = Math.min(30000, 3000 * Math.pow(2, this.reconnectAttempts.get(exchange) || 1));
+      this.reconnectAttempts.set(exchange, (this.reconnectAttempts.get(exchange) || 0) + 1);
+      
+      console.log(`⏰ ${exchange} 将在 ${retryDelay / 1000} 秒后再次尝试重连...`);
+      setTimeout(() => {
+        this.attemptReconnect(exchange, url, messageHandler, onOpenCallback);
+      }, retryDelay);
+    }
   }
 
   // 处理Binance消息

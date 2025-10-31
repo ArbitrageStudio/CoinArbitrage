@@ -68,7 +68,7 @@ class RealtimeArbitrageDetector {
     this.checkArbitrageOpportunity(symbol);
   }
 
-  // 获取Hyperliquid真实价格（使用REST API）
+  // 获取Hyperliquid真实价格（使用REST API，批量获取）
   async getHyperliquidRealPrice(symbol) {
     try {
       const now = Date.now();
@@ -84,25 +84,26 @@ class RealtimeArbitrageDetector {
         return cachedPrice || null;
       }
       
-      // 调用Hyperliquid API获取真实价格
-      const ticker = await this.hyperliquidApi.getTicker(symbol);
+      // 批量获取所有交易对的价格（单次API调用）
+      const allTickers = await this.hyperliquidApi.getMultipleTickers(this.symbols);
       
-      if (ticker && ticker.price) {
-        const priceData = {
-          price: ticker.price,
-          bid: ticker.bid,
-          ask: ticker.ask,
-          timestamp: now
-        };
-        
-        // 更新缓存
-        this.hyperliquidPriceCache.set(symbol, priceData);
-        this.lastHyperliquidUpdate = now;
-        
-        return priceData;
-      }
+      // 更新所有交易对的缓存
+      allTickers.forEach(ticker => {
+        if (ticker && ticker.price) {
+          const priceData = {
+            price: ticker.price,
+            bid: ticker.bid,
+            ask: ticker.ask,
+            timestamp: now
+          };
+          this.hyperliquidPriceCache.set(ticker.symbol, priceData);
+        }
+      });
       
-      return null;
+      this.lastHyperliquidUpdate = now;
+      
+      // 返回请求的特定交易对价格
+      return this.hyperliquidPriceCache.get(symbol) || null;
       
     } catch (error) {
       console.error(`获取Hyperliquid价格失败 (${symbol}):`, error.message);
@@ -189,7 +190,7 @@ class RealtimeArbitrageDetector {
     const tradingFees = (buyPrice * 0.001) + (sellPrice * 0.001);
     const netProfit = grossProfit - tradingFees;
     const netProfitPercentage = (netProfit / Math.min(buyPrice, sellPrice)) * 100;
-    console.log(netProfitPercentage);
+    // console.log(netProfitPercentage);
     return {
       symbol,
       buyExchange,

@@ -19,7 +19,9 @@ class RealTimeMonitor {
     console.log('📊 监控交易对:', this.detector.symbols.join(', '));
     console.log('⚡ 检测频率: 毫秒级 (WebSocket实时数据)');
     console.log('💡 最小利润阈值: 0.3%');
-    console.log('⏰ 开始时间:', new Date().toLocaleString('zh-CN'));
+    console.log('⏰ 程序启动时间:', new Date().toLocaleString('zh-CN'));
+    console.log('🔄 检查间隔:', process.env.CHECK_INTERVAL || '2000', '毫秒');
+    console.log('📈 价格缓存时间:', process.env.PRICE_CACHE_TTL || '5000', '毫秒');
     console.log('='.repeat(60));
 
     try {
