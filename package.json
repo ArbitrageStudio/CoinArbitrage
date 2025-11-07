@@ -8,6 +8,12 @@
     "dev": "node --watch index.js",
     "monitor": "node realtime_monitor.js",
     "dryrun": "node dry_run_demo.js",
+    "basis:dryrun": "node okx_basis_dryrun.js",
+    "basis:sandbox": "node okx_basis_trade.js",
+    "basis:close": "node okx_basis_close.js",
+    "basis:risk": "node okx_basis_risk.js",
+    "basis:manager": "node okx_basis_manager.js",
+    "lighter:wsdemo": "node lighter_ws_demo.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

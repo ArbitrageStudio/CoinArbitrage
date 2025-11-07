@@ -187,6 +187,201 @@ class TradeExecutor {
     }
   }
 
+  // OKX 永续（SWAP）市价单（沙盒支持）
+  async placeOkxPerpMarket(symbol, side, { usdtAmount, quantity }) {
+    try {
+      const swapSymbol = `${symbol}-SWAP`;
+      const requestPath = '/api/v5/trade/order';
+
+      // 获取当前永续价格用于估算张数（若提供 quantity 则优先使用）
+      const ticker = await this.okx.getFuturesTicker(symbol);
+      const lastPrice = ticker && ticker.price ? Number(ticker.price) : undefined;
+      if (!lastPrice || lastPrice <= 0) {
+        throw new Error('OKX perp ticker unavailable');
+      }
+
+      let contracts;
+      if (quantity && quantity > 0) {
+        // 将基础币数量换算为合约张数
+        const info = await this.okx.getSwapInstrument(swapSymbol);
+        const rawContracts = quantity / info.ctVal;
+        const step = info.lotSz || 1;
+        contracts = Math.floor(rawContracts / step) * step;
+        if (contracts < info.minSz) {
+          throw new Error(`Order size below minSz: ${contracts} < ${info.minSz}`);
+        }
+      } else if (usdtAmount && usdtAmount > 0) {
+        const { contracts: c } = await this.okx.estimateSwapSizeByUsdt(swapSymbol, lastPrice, usdtAmount);
+        contracts = c;
+      } else {
+        throw new Error('Invalid OKX perp market order parameters');
+      }
+
+      const body = {
+        instId: swapSymbol,
+        tdMode: process.env.OKX_TDMODE || 'cross',
+        side: side === 'buy' ? 'buy' : 'sell',
+        ordType: 'market',
+        sz: String(contracts)
+      };
+
+      const headers = this.okx.getHeaders('POST', requestPath, JSON.stringify(body));
+      const resp = await this.okx.client.post(requestPath, body, { headers });
+      if (resp.data.code !== '0') {
+        throw new Error(resp.data.msg || 'OKX perp trade/order failed');
+      }
+      return { raw: resp.data };
+    } catch (error) {
+      if (error.response && error.response.data) {
+        console.error('OKX 永续下单错误:', error.response.data);
+        throw new Error(error.response.data.msg || error.message);
+      }
+      throw error;
+    }
+  }
+
+  // 直接按合约张数下 OKX 永续市价单
+  async placeOkxPerpMarketByContracts(symbol, side, contracts) {
+    try {
+      const swapSymbol = `${symbol}-SWAP`;
+      const requestPath = '/api/v5/trade/order';
+      if (!contracts || contracts <= 0) throw new Error('Invalid contracts');
+      const body = {
+        instId: swapSymbol,
+        tdMode: process.env.OKX_TDMODE || 'cross',
+        side: side === 'buy' ? 'buy' : 'sell',
+        ordType: 'market',
+        sz: String(contracts)
+      };
+      const headers = this.okx.getHeaders('POST', requestPath, JSON.stringify(body));
+      const resp = await this.okx.client.post(requestPath, body, { headers });
+      if (resp.data.code !== '0') {
+        throw new Error(resp.data.msg || 'OKX perp trade/order failed');
+      }
+      return { raw: resp.data };
+    } catch (error) {
+      if (error.response && error.response.data) {
+        console.error('OKX 永续下单错误:', error.response.data);
+        throw new Error(error.response.data.msg || error.message);
+      }
+      throw error;
+    }
+  }
+
+  // 执行 OKX 基差计划：买现货 + 卖永续（或反向）
+  async executeOkxBasisPlan(plan) {
+    try {
+      if (!this.enableAutoTrade) return { skipped: true, reason: 'auto_trade_disabled' };
+      if (!plan || !Array.isArray(plan.legs)) return { skipped: true, reason: 'invalid_plan' };
+      if (this.dryRun) {
+        console.log('🧪 [DRY-RUN] OKX 基差计划执行: ', plan);
+        return { dryRun: true };
+      }
+
+      // 顺序执行：先现货，再永续（避免裸空风险）
+      const spotLeg = plan.legs.find(l => l.market === 'spot' && l.exchange === 'okx');
+      const perpLeg = plan.legs.find(l => l.market === 'perpetual' && l.exchange === 'okx');
+      if (!spotLeg || !perpLeg) return { skipped: true, reason: 'missing_legs' };
+
+      const quantity = Number(plan.quantity || (this.orderUsdtSize / plan.spotPrice));
+
+      const spotRes = await this.placeOkxSpotMarket(plan.symbol, spotLeg.side, {
+        usdtAmount: spotLeg.side === 'buy' ? this.orderUsdtSize : undefined,
+        quantity: spotLeg.side === 'sell' ? quantity : undefined
+      });
+
+      const perpRes = await this.placeOkxPerpMarket(plan.symbol, perpLeg.side, {
+        usdtAmount: perpLeg.side === 'sell' ? this.orderUsdtSize : undefined,
+        quantity: perpLeg.side === 'sell' ? quantity : undefined
+      });
+
+      console.log('✅ OKX 基差计划完成:', { symbol: plan.symbol, qty: Number(quantity.toFixed(6)) });
+      return { ok: true, spotRes, perpRes };
+    } catch (error) {
+      console.error('❌ 执行 OKX 基差计划失败:', error.message);
+      return { ok: false, error: error.message };
+    }
+  }
+
+  // === 风控与闭环 ===
+  // 获取 OKX 现货资产余额（返回基础币余额，如 BTC 数量）
+  async getOkxSpotBalanceForSymbol(symbol) {
+    const base = symbol.split('-')[0];
+    const data = await this.okx.getBalance();
+    try {
+      const details = (data && data[0] && data[0].details) ? data[0].details : [];
+      const item = details.find(d => d.ccy === base);
+      const avail = item ? parseFloat(item.availBal || item.cashBal || '0') : 0;
+      return { base, avail };
+    } catch {
+      return { base, avail: 0 };
+    }
+  }
+
+  // 关闭 OKX 现货腿：卖出基础币数量
+  async closeOkxSpotLeg(symbol, quantity) {
+    if (!quantity || quantity <= 0) return { skipped: true };
+    return this.placeOkxSpotMarket(symbol, 'sell', { quantity });
+  }
+
+  // 获取 OKX 永续仓位
+  async getOkxPerpPositions(symbol) {
+    const instId = `${symbol}-SWAP`;
+    return this.okx.getSwapPositions(instId);
+  }
+
+  // 关闭 OKX 永续腿：按张数买入/卖出以对冲至 0（默认关闭空头：买入）
+  async closeOkxPerpLeg(symbol) {
+    const positions = await this.getOkxPerpPositions(symbol);
+    const instId = `${symbol}-SWAP`;
+    const pos = positions.find(p => p.instId === instId && Math.abs(p.pos) > 0);
+    if (!pos) return { skipped: true };
+    const side = (pos.posSide === 'short') ? 'buy' : 'sell';
+    const res = await this.placeOkxPerpMarketByContracts(symbol, side, Math.abs(pos.pos));
+    return res;
+  }
+
+  // 根据资金费风险，判断是否需要在下一个资金费之前平掉永续腿
+  async maybeCloseOkxPerpBeforeFunding(symbol, minutesBefore = 5) {
+    const fr = await this.okx.getFundingRate(symbol);
+    if (!fr) return { skipped: true };
+    const now = Date.now();
+    const timeToFundingMin = (fr.nextFundingTime - now) / 60000;
+    const positions = await this.getOkxPerpPositions(symbol);
+    const instId = `${symbol}-SWAP`;
+    const pos = positions.find(p => p.instId === instId && Math.abs(p.pos) > 0);
+    if (!pos) return { skipped: true };
+
+    // 规则：若当前持空（需要支付正资金费）且临近资金费，提前平仓
+    const isShort = (pos.posSide === 'short' || pos.pos > 0);
+    const willPay = isShort && fr.fundingRate > 0;
+    if (willPay && timeToFundingMin <= minutesBefore) {
+      // 平掉永续腿
+      const res = await this.closeOkxPerpLeg(symbol);
+      return { closed: true, res };
+    }
+    return { skipped: true };
+  }
+
+  // 一键闭环：同时关闭现货与永续（先永续，再现货）
+  async closeOkxBasisPosition(symbol) {
+    try {
+      // 先平永续，避免敞口扩大
+      await this.closeOkxPerpLeg(symbol);
+
+      // 再卖出现货余额
+      const bal = await this.getOkxSpotBalanceForSymbol(symbol);
+      if (bal.avail > 0) {
+        await this.closeOkxSpotLeg(symbol, bal.avail);
+      }
+      console.log(`✅ 已闭环 ${symbol} 基差仓位`);
+      return { ok: true };
+    } catch (error) {
+      console.error('❌ 闭环失败:', error.message);
+      return { ok: false, error: error.message };
+    }
+  }
+
   _sumFillsQty(fills) {
     try {
       if (!fills || !Array.isArray(fills)) return undefined;

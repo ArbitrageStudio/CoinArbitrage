@@ -174,6 +174,89 @@ AUTO_TRADE_COOLDOWN_MS=15000    # 同一交易对下单冷却时间，毫秒
 - OKX 现货市价买入按 USDT 金额下单需 `tdMode=cash` 且 `tgtCcy=quote_ccy`。
 - Hyperliquid 的自动交易暂未集成，当前仅用于价格与机会检测。
 
+## 🧪 OKX 单所基差套利（干跑验证）
+
+用于验证 OKX 现货-永续基差套利（买现货、做空永续）的可行性与潜在净收益。
+
+- 启动命令：`npm run basis:dryrun`
+- 配置项：
+  - `ARBITRAGE_SYMBOLS`（或在 `src/config/arbitrageConfig.js` 中设置）
+  - `BASIS_HOLD_HOURS`（默认 `8`，对应一个资金费周期）
+  - `OKX_SPOT_FEE`（默认 `0.001`，即 0.1%）
+  - `OKX_PERP_FEE`（默认 `0.0005`，即 0.05%）
+  - `ORDER_USDT_SIZE`（默认 `50`，用于估算规模）
+  - `BASIS_MIN_PROFIT` 或 `AUTO_TRADE_MIN_PROFIT`（最低净利百分比阈值）
+
+输出包含：现货价、永续价、基差百分比、资金费估算、手续费估算、预期净利与净利百分比；标记 `✅ 可行计划` 表示净利百分比超过你设定的阈值。
+
+说明：
+- 这是干跑验证，不会提交真实订单；真实执行需要另行实现 OKX 永续下单与仓位管理。
+- 资金费率是每 8 小时的周期费率，脚本采用线性近似作为验证参考。
+- 建议先在 OKX 沙盒环境用小额受控范围做真下单验证，再迁移到实盘。
+
+### 🧪→🧰 沙盒真单执行（OKX 永续）
+
+- 启动命令：`npm run basis:sandbox`
+- 前置要求：
+  - `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` 已配置
+  - `OKX_SANDBOX=true`（启用模拟交易头 `x-simulated-trading: 1`）
+  - 如需仅观察，不下真单：保留 `AUTO_TRADE_DRY_RUN=true`
+- 行为说明：
+  - 脚本读取 `src/utils/intra_exchange_arbitrage.js` 生成的计划（买现货、卖永续），在沙盒环境下按市价执行。
+  - 合约张数依据 OKX 合约参数 `ctVal/lotSz/minSz` 自动换算并向下取整，避免最小张数限制报错。
+
+示例环境变量：
+```env
+OKX_SANDBOX=true
+ENABLE_AUTO_TRADE=true
+AUTO_TRADE_DRY_RUN=false
+ORDER_USDT_SIZE=50
+ARBITRAGE_SYMBOLS=BTC-USDT,ETH-USDT
+```
+
+注意：
+- 合约张数计算需拉取 `public/instruments` 参数，若 `ORDER_USDT_SIZE` 极小可能低于 `minSz` 而被拒绝。
+- 初次验证建议小额、分批次执行，并观察资金费率影响与成交回报结构。
+
+### 🔄 闭环与风控（仓位查询 / 平仓 / 资金费）
+
+- 仓位查询与闭环：
+  - 关闭两腿：`npm run basis:close`
+  - 说明：先平永续、再卖出现货余额，避免敞口扩大。
+- 资金费风控：
+  - 提前在资金费前平掉可能支付资金费的空头：`npm run basis:risk`
+  - 环境变量：`FUNDING_CLOSE_BEFORE_MINUTES=5`
+  - 规则：若永续持空且 `fundingRate > 0` 并临近资金费时间（≤阈值分钟），则执行平仓。
+
+注意：
+- OKX 现货余额读取依赖 `account/balance` 的 `details.ccy`，若资产不足则跳过现货腿。
+- 永续仓位读取依赖 `account/positions?instType=SWAP&instId=...`，若无持仓则跳过永续腿。
+
+### 🧭 经理脚本（连续管理与自动闭环）
+
+- 命令：`npm run basis:manager`
+- 功能：按固定周期巡检 `ARBITRAGE_SYMBOLS`，对 OKX 现货+永续基差进行“自动开仓 + 连续管理 + 自动闭环”：
+  - 资金费窗口风控：若永续为空且 `fundingRate > 0` 且距离下一次资金费 ≤ 阈值分钟，则提前平掉永续腿。
+  - 持有时长闭环：达到 `BASIS_HOLD_HOURS` 后自动先平永续、再卖出现货，完整闭环。
+  - 止损/止盈：依据当前现货/永续价格粗略计算净利润率，触发止损或止盈阈值时自动闭环。
+  - 自动开仓：当基差计划可行（`feasible=true`）且启用自动交易时，自动按市价买现货、做空永续，规模取 `ORDER_USDT_SIZE`。
+
+环境变量：
+- `ARBITRAGE_SYMBOLS`: 例 `BTC-USDT,ETH-USDT`
+- `BASIS_HOLD_HOURS`: 达到持有时长后自动闭环，默认 `8`
+- `FUNDING_CLOSE_BEFORE_MINUTES`: 资金费窗口前多少分钟平永续，默认 `5`
+- `BASIS_STOP_LOSS_PCT`: 止损百分比（净利率阈值，负方向），默认 `0` 表示禁用
+- `BASIS_TAKE_PROFIT_PCT`: 止盈百分比（净利率阈值），默认 `0` 表示禁用
+- `MANAGER_CHECK_INTERVAL_MS`: 巡检间隔毫秒数，默认 `60000`
+- `MANAGER_RUN_MS`: 运行时长毫秒数，默认 `0` 表示持续运行
+- `ENABLE_AUTO_TRADE`: 开启自动交易（用于自动开仓），默认 `false`
+- `AUTO_TRADE_DRY_RUN`: 干跑模式（打印计划但不下单），默认 `true`
+
+注意事项：
+- 脚本使用本地状态文件 `.basis_state.json` 记录持仓起始时间；若你在外部平仓或账户资产变动，脚本会在巡检时同步更新并清理状态。
+- 若使用沙盒，请设置 `OKX_SANDBOX=true` 并确保 `OKX_API_KEY/SECRET_KEY/PASSPHRASE` 有效；真实环境下请谨慎评估风险与权限。
+- 自动开仓依赖 `ENABLE_AUTO_TRADE=true`；干跑模式下只打印不下单，持仓记录不会落地。
+
 ## 🛠️ 故障排除
 
 ### 常见问题

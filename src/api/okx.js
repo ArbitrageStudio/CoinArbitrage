@@ -6,9 +6,8 @@ class OKXApi {
     this.apiKey = apiKey;
     this.secretKey = secretKey;
     this.passphrase = passphrase;
-    this.baseURL = sandbox 
-      ? 'https://www.okx.com' 
-      : 'https://www.okx.com';
+    this.sandbox = !!sandbox;
+    this.baseURL = 'https://www.okx.com';
     
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -31,14 +30,18 @@ class OKXApi {
   getHeaders(method, requestPath, body = '') {
     const timestamp = new Date().toISOString();
     const signature = this.generateSignature(timestamp, method, requestPath, body);
-    
-    return {
+    const headers = {
       'OK-ACCESS-KEY': this.apiKey,
       'OK-ACCESS-SIGN': signature,
       'OK-ACCESS-TIMESTAMP': timestamp,
       'OK-ACCESS-PASSPHRASE': this.passphrase,
       'Content-Type': 'application/json'
     };
+    // 开启沙盒（模拟交易）头
+    if (this.sandbox) {
+      headers['x-simulated-trading'] = '1';
+    }
+    return headers;
   }
 
   // 获取ticker价格信息
@@ -249,6 +252,44 @@ class OKXApi {
     }
   }
 
+  // 获取合约（SWAP）合约参数
+  async getSwapInstrument(instId) {
+    try {
+      const requestPath = `/api/v5/public/instruments?instType=SWAP&instId=${instId}`;
+      const response = await this.client.get(requestPath);
+      if (response.data.code === '0' && response.data.data && response.data.data.length > 0) {
+        const d = response.data.data[0];
+        return {
+          instId: d.instId,
+          ctVal: parseFloat(d.ctVal), // 合约面值
+          ctValCcy: d.ctValCcy,       // 面值计价币种（如 BTC 或 USDT）
+          lotSz: parseFloat(d.lotSz), // 下单步长（合约张数步进）
+          tickSz: parseFloat(d.tickSz),
+          minSz: parseFloat(d.minSz || '0')
+        };
+      }
+      throw new Error(`OKX instruments error: ${response.data.msg || 'unknown'}`);
+    } catch (error) {
+      console.error('OKX getSwapInstrument error:', error.message);
+      throw error;
+    }
+  }
+
+  // 根据 USDT 名义金额与价格估算张数（合约数量），按 lotSz 向下取整
+  async estimateSwapSizeByUsdt(instId, lastPrice, usdtNotional) {
+    const info = await this.getSwapInstrument(instId);
+    // 将 USDT 金额转换为基础币数量（例如 BTC 数量）
+    // 若 ctValCcy 为基础币（如 BTC），则 1 张 = ctVal 个基础币
+    const baseQty = usdtNotional / lastPrice;
+    const rawContracts = baseQty / info.ctVal; // 张数（可能是小数）
+    const step = info.lotSz || 1;
+    const contracts = Math.floor(rawContracts / step) * step;
+    if (contracts < info.minSz) {
+      throw new Error(`Order size below minSz: ${contracts} < ${info.minSz}`);
+    }
+    return { contracts, info };
+  }
+
   // 获取资金费率
   async getFundingRate(symbol) {
     try {
@@ -311,6 +352,36 @@ class OKXApi {
       }
     } catch (error) {
       console.error('OKX getBalance error:', error.message);
+      throw error;
+    }
+  }
+
+  // 获取永续仓位（SWAP）
+  async getSwapPositions(instId) {
+    try {
+      const requestPath = `/api/v5/account/positions?instType=SWAP&instId=${instId}`;
+      const headers = this.getHeaders('GET', requestPath);
+      const response = await this.client.get(requestPath, { headers });
+      if (response.data.code === '0') {
+        const arr = response.data.data || [];
+        // 归一化输出：以张数与方向为核心
+        return arr.map(d => ({
+          instId: d.instId,
+          mgnMode: d.mgnMode,
+          lever: parseFloat(d.lever),
+          posSide: d.posSide || (parseFloat(d.pos || '0') >= 0 ? 'short' : 'long'),
+          // OKX pos 为张数字符串
+          pos: parseFloat(d.pos || '0'),
+          avgPx: parseFloat(d.avgPx || '0'),
+          upl: parseFloat(d.upl || '0'),
+          liqPx: parseFloat(d.liqPx || '0'),
+          markPx: parseFloat(d.markPx || '0'),
+          ccy: d.ccy
+        }));
+      }
+      throw new Error(`OKX positions error: ${response.data.msg || 'unknown'}`);
+    } catch (error) {
+      console.error('OKX getSwapPositions error:', error.message);
       throw error;
     }
   }
