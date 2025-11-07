@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
+    "monitor": "node realtime_monitor.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

@@ -146,6 +146,34 @@ OKX_ENABLED=false
 HYPERLIQUID_ENABLED=false
 ```
 
+## 🤖 自动下单（可选）
+
+默认不开启自动下单，开启方式如下：
+
+1) 在 `.env` 中开启并设置参数：
+```env
+ENABLE_AUTO_TRADE=true          # 开启自动下单
+AUTO_TRADE_DRY_RUN=true         # 干跑模式，仅打印不下单（建议先开启）
+ORDER_USDT_SIZE=50              # 每次交易使用的USDT金额
+AUTO_TRADE_MIN_PROFIT=0.5       # 仅当机会利润超过该阈值才下单
+AUTO_TRADE_COOLDOWN_MS=15000    # 同一交易对下单冷却时间，毫秒
+```
+
+2) 确保已正确配置交易所密钥且具备交易权限：
+- `BINANCE_API_KEY`, `BINANCE_SECRET_KEY`
+- `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE`
+
+3) 启动实时监控后，系统在检测到满足阈值的机会时将：
+- 在买方交易所以市价按 USDT 金额买入（Binance 支持 `quoteOrderQty`，OKX 使用 `tgtCcy=quote_ccy`）。
+- 在卖方交易所以市价按买入数量卖出。
+- 冷却时间内对同一交易对不重复下单。
+
+4) 风险与注意事项：
+- 市价单可能产生滑点和手续费误差，建议从 `AUTO_TRADE_DRY_RUN=true` 验证流程开始。
+- Binance 的卖出市价单需要指定 `quantity`；若精度或 LOT_SIZE 不匹配可能报错。
+- OKX 现货市价买入按 USDT 金额下单需 `tdMode=cash` 且 `tgtCcy=quote_ccy`。
+- Hyperliquid 的自动交易暂未集成，当前仅用于价格与机会检测。
+
 ## 🛠️ 故障排除
 
 ### 常见问题

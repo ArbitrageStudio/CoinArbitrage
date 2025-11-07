@@ -1,6 +1,7 @@
 const ArbitrageCalculator = require('./arbitrage');
 const WebSocketManager = require('../api/websocket');
 const HyperliquidApi = require('../api/hyperliquid');
+const TradeExecutor = require('./execution');
 const arbitrageConfig = require('../config/arbitrageConfig');
 
 class RealtimeArbitrageDetector {
@@ -8,6 +9,7 @@ class RealtimeArbitrageDetector {
     this.arbitrageCalculator = new ArbitrageCalculator();
     this.wsManager = new WebSocketManager();
     this.hyperliquidApi = new HyperliquidApi();
+    this.tradeExecutor = new TradeExecutor();
     this.opportunities = new Map();
     this.minProfitThreshold = arbitrageConfig.getMinProfitThreshold();
     this.symbols = arbitrageConfig.getSymbols();
@@ -217,7 +219,7 @@ class RealtimeArbitrageDetector {
 
   // 通知套利机会
   notifyOpportunities(opportunities) {
-    opportunities.forEach(opportunity => {
+    opportunities.forEach(async (opportunity) => {
       if (opportunity.netProfitPercentage > this.minProfitThreshold) {
         // 高利润机会 - 立即通知
         const isHighProfit = opportunity.netProfitPercentage > arbitrageConfig.NOTIFICATION_CONFIG.highProfitThreshold;
@@ -231,6 +233,20 @@ class RealtimeArbitrageDetector {
           净利润百分比: `${opportunity.netProfitPercentage.toFixed(2)}%`,
           时间: new Date(opportunity.timestamp).toLocaleTimeString()
         });
+
+        // 自动交易（可选）
+        try {
+          const result = await this.tradeExecutor.executeArbitrage(opportunity);
+          if (result && result.ok) {
+            console.log('✅ 已自动执行买卖 (市价单)');
+          } else if (result && result.dryRun) {
+            console.log('🧪 DRY-RUN：未实际下单，仅打印计划');
+          } else if (result && result.skipped) {
+            // 静默跳过即可
+          }
+        } catch (err) {
+          console.error('❌ 自动交易执行失败:', err.message);
+        }
       }
     });
   }
