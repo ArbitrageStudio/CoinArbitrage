@@ -1,10 +1,10 @@
 require('dotenv').config();
 const OkxBasisArbitrage = require('./src/utils/intra_exchange_arbitrage');
-const { getArbitrageConfig } = require('./src/config/arbitrageConfig');
+const arbitrageConfig = require('./src/config/arbitrageConfig');
 
 async function main() {
   console.log('🧪 OKX 现货-永续基差套利 干跑验证启动');
-  const config = getArbitrageConfig();
+  const config = arbitrageConfig;
   const symbols = config.symbols || (process.env.ARBITRAGE_SYMBOLS || 'BTC-USDT,ETH-USDT').split(',');
   const holdHours = parseFloat(process.env.BASIS_HOLD_HOURS || '8');
 

@@ -1,5 +1,5 @@
 const OkxApi = require('../api/okx');
-const { getArbitrageConfig } = require('../config/arbitrageConfig');
+const arbitrageConfig = require('../config/arbitrageConfig');
 
 // 简化费用估算，可在 .env 中覆盖
 const SPOT_FEE_RATE = parseFloat(process.env.OKX_SPOT_FEE || '0.001'); // 0.1%
@@ -15,7 +15,7 @@ class OkxBasisArbitrage {
       process.env.OKX_PASSPHRASE,
       process.env.OKX_SANDBOX === 'true'
     );
-    this.config = getArbitrageConfig();
+    this.config = arbitrageConfig;
   }
 
   // 现货与永续的标准化 symbol 转换
@@ -31,11 +31,11 @@ class OkxBasisArbitrage {
       this.okx.getFuturesTicker(normalized),
       this.okx.getFundingRate(normalized)
     ]);
-
-    const spotPrice = spot?.last || parseFloat(spot?.lastTradedPrice || spot?.last || 0);
-    const perpPrice = perp?.last || parseFloat(perp?.lastTradedPrice || perp?.last || 0);
+    // console.log(spot, perp, funding);
+    const spotPrice = spot?.price || parseFloat(spot?.lastTradedPrice || spot?.price || 0);
+    const perpPrice = perp?.price || parseFloat(perp?.lastTradedPrice || perp?.price || 0);
     const fundingRate = parseFloat(funding?.fundingRate || 0); // 单次 8 小时资金费率
-
+    // console.log(spotPrice, perpPrice, fundingRate);
     return { spotPrice: Number(spotPrice), perpPrice: Number(perpPrice), fundingRate };
   }
 
@@ -89,9 +89,9 @@ class OkxBasisArbitrage {
     };
   }
 
-  async analyzeSymbols(symbols, holdHours = parseFloat(process.env.BASIS_HOLD_HOURS || '8')) {
+  async analyzeSymbols(symbol, holdHours = parseFloat(process.env.BASIS_HOLD_HOURS || '8')) {
     const results = [];
-    for (const symbol of symbols) {
+    // for (const symbol of symbols) {
       try {
         const { spotPrice, perpPrice, fundingRate } = await this.fetchSpotAndPerp(symbol);
         const basisPct = this.computeBasis(spotPrice, perpPrice);
@@ -100,7 +100,7 @@ class OkxBasisArbitrage {
       } catch (err) {
         results.push({ strategy: 'okx_spot_perp_basis', symbol, error: err.message });
       }
-    }
+    // }
     return results;
   }
 }

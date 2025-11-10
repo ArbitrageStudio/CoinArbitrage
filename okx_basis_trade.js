@@ -13,17 +13,20 @@ async function main() {
 
   for (const sym of symbols) {
     try {
-      const plan = await arbitrage.analyzeSymbol(sym, { holdHours });
+      console.log(`🔍 分析 ${sym} 基差`);
+      const plan = await arbitrage.analyzeSymbols(sym, { holdHours });
       if (!plan) {
         console.log(`⚠️ ${sym} 未生成计划`);
         continue;
       }
-
-      console.log(`📋 计划(${sym}): 净利 ${plan.netProfitPercentage.toFixed(3)}% / ${plan.netProfit.toFixed(4)} USDT`);
+      
+      
       if (!plan.feasible) {
         console.log(`❎ ${sym} 计划不可行（净利不足阈值或为负）`);
         continue;
       }
+
+      console.log(`📋 计划(${sym}): 净利 ${plan.netProfitPercentage.toFixed(3)}% / ${plan.netProfit.toFixed(4)} USDT`);
 
       const dryRun = (process.env.AUTO_TRADE_DRY_RUN || 'true') === 'true';
       const sandbox = (process.env.OKX_SANDBOX || 'false') === 'true';

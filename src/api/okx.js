@@ -54,6 +54,7 @@ class OKXApi {
       
       if (response.data.code === '0' && response.data.data.length > 0) {
         const ticker = response.data.data[0];
+        // console.log(ticker);
         return {
           symbol: ticker.instId,
           price: parseFloat(ticker.last),
@@ -85,6 +86,7 @@ class OKXApi {
       
       if (response.data.code === '0' && response.data.data.length > 0) {
         const ticker = response.data.data[0];
+        // console.log(ticker);
         return {
           symbol: symbol, // 保持原始格式便于比较
           price: parseFloat(ticker.last),
@@ -300,6 +302,7 @@ class OKXApi {
       
       if (response.data.code === '0' && response.data.data.length > 0) {
         const fundingData = response.data.data[0];
+        // console.log(fundingData);
         return {
           symbol: swapSymbol,
           originalSymbol: symbol,

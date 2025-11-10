@@ -232,6 +232,49 @@ ARBITRAGE_SYMBOLS=BTC-USDT,ETH-USDT
 - OKX 现货余额读取依赖 `account/balance` 的 `details.ccy`，若资产不足则跳过现货腿。
 - 永续仓位读取依赖 `account/positions?instType=SWAP&instId=...`，若无持仓则跳过永续腿。
 
+### 滑点检查与流动性验证
+在自动执行基差套利计划时，系统现在会在下单前查询 OKX 现货/永续订单簿深度，计算预期滑点：
+- 若总滑点（现货 + 永续）超过阈值（默认 0.5%），则跳过执行。
+- 环境变量：`MAX_SLIPPAGE_PCT=0.5`（可自定义阈值百分比）。
+
+此功能确保在高波动市场中避免过度滑点导致实际利润低于预期。
+
+- 启动命令：`npm run basis:sandbox`
+- 前置要求：
+  - `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` 已配置
+  - `OKX_SANDBOX=true`（启用模拟交易头 `x-simulated-trading: 1`）
+  - 如需仅观察，不下真单：保留 `AUTO_TRADE_DRY_RUN=true`
+- 行为说明：
+  - 脚本读取 `src/utils/intra_exchange_arbitrage.js` 生成的计划（买现货、卖永续），在沙盒环境下按市价执行。
+  - 合约张数依据 OKX 合约参数 `ctVal/lotSz/minSz` 自动换算并向下取整，避免最小张数限制报错。
+
+示例环境变量：
+```env
+OKX_SANDBOX=true
+ENABLE_AUTO_TRADE=true
+AUTO_TRADE_DRY_RUN=false
+ORDER_USDT_SIZE=50
+ARBITRAGE_SYMBOLS=BTC-USDT,ETH-USDT
+```
+
+注意：
+- 合约张数计算需拉取 `public/instruments` 参数，若 `ORDER_USDT_SIZE` 极小可能低于 `minSz` 而被拒绝。
+- 初次验证建议小额、分批次执行，并观察资金费率影响与成交回报结构。
+
+### 🔄 闭环与风控（仓位查询 / 平仓 / 资金费）
+
+- 仓位查询与闭环：
+  - 关闭两腿：`npm run basis:close`
+  - 说明：先平永续、再卖出现货余额，避免敞口扩大。
+- 资金费风控：
+  - 提前在资金费前平掉可能支付资金费的空头：`npm run basis:risk`
+  - 环境变量：`FUNDING_CLOSE_BEFORE_MINUTES=5`
+  - 规则：若永续持空且 `fundingRate > 0` 并临近资金费时间（≤阈值分钟），则执行平仓。
+
+注意：
+- OKX 现货余额读取依赖 `account/balance` 的 `details.ccy`，若资产不足则跳过现货腿。
+- 永续仓位读取依赖 `account/positions?instType=SWAP&instId=...`，若无持仓则跳过永续腿。
+
 ### 🧭 经理脚本（连续管理与自动闭环）
 
 - 命令：`npm run basis:manager`

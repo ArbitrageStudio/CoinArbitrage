@@ -3,6 +3,7 @@ require('dotenv').config();
 const OKXApi = require('../api/okx');
 const BinanceApi = require('../api/binance');
 const arbitrageConfig = require('../config/arbitrageConfig');
+const SlippageCalculator = require('./slippage');
 
 class TradeExecutor {
   constructor() {
@@ -283,8 +284,36 @@ class TradeExecutor {
       const perpLeg = plan.legs.find(l => l.market === 'perpetual' && l.exchange === 'okx');
       if (!spotLeg || !perpLeg) return { skipped: true, reason: 'missing_legs' };
 
+      // 在 constructor 中添加
+      this.maxSlippage = parseFloat(process.env.MAX_SLIPPAGE_PCT || '0.5');
+      
+      // 在 executeOkxBasisPlan 中，干跑检查后添加滑点检查
+      // 计算数量
       const quantity = Number(plan.quantity || (this.orderUsdtSize / plan.spotPrice));
-
+      
+      // 滑点检查
+      const okxOptions = {
+        apiKey: this.okx.apiKey,
+        secretKey: this.okx.secretKey,
+        passphrase: this.okx.passphrase,
+        sandbox: this.okx.sandbox
+      };
+      
+      const isSlippageOk = await SlippageCalculator.isOkxBasisSlippageAcceptable(
+        plan.symbol,
+        quantity,
+        spotLeg.side,
+        perpLeg.side,
+        this.maxSlippage,
+        okxOptions
+      );
+      
+      if (!isSlippageOk) {
+        console.log(`⚠️ 滑点过高，跳过执行: ${plan.symbol}`);
+        return { skipped: true, reason: 'slippage_too_high' };
+      }
+      
+      // 继续执行订单...
       const spotRes = await this.placeOkxSpotMarket(plan.symbol, spotLeg.side, {
         usdtAmount: spotLeg.side === 'buy' ? this.orderUsdtSize : undefined,
         quantity: spotLeg.side === 'sell' ? quantity : undefined
