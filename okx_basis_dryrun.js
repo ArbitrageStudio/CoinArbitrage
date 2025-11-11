@@ -10,6 +10,7 @@ async function main() {
 
   const analyzer = new OkxBasisArbitrage();
   const plans = await analyzer.analyzeSymbols(symbols, holdHours);
+  console.log('🚀', plans);
 
   const feasiblePlans = plans.filter(p => p.feasible);
   const infeasiblePlans = plans.filter(p => !p.feasible);
@@ -31,6 +32,7 @@ async function main() {
   if (infeasiblePlans.length) {
     console.log('⚠️ 不可行计划（仅供参考）:');
     for (const plan of infeasiblePlans) {
+      // console.log('🚀', plan);
       if (plan.error) {
         console.log('❌ 错误:', plan.symbol, plan.error);
       } else {

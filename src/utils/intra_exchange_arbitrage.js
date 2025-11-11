@@ -89,7 +89,7 @@ class OkxBasisArbitrage {
     };
   }
 
-  async analyzeSymbols(symbol, holdHours = parseFloat(process.env.BASIS_HOLD_HOURS || '8')) {
+  async analyzeSymbol(symbol, holdHours = parseFloat(process.env.BASIS_HOLD_HOURS || '8')) {
     const results = [];
     // for (const symbol of symbols) {
       try {
@@ -103,6 +103,22 @@ class OkxBasisArbitrage {
     // }
     return results;
   }
+
+  async analyzeSymbols(symbols, holdHours = parseFloat(process.env.BASIS_HOLD_HOURS || '8')) {
+    const results = [];
+    for (const symbol of symbols) {
+      try {
+        const { spotPrice, perpPrice, fundingRate } = await this.fetchSpotAndPerp(symbol);
+        const basisPct = this.computeBasis(spotPrice, perpPrice);
+        const plan = this.buildPlan(symbol, spotPrice, perpPrice, basisPct, fundingRate, holdHours);
+        results.push(plan);
+      } catch (err) {
+        results.push({ strategy: 'okx_spot_perp_basis', symbol, error: err.message });
+      }
+    }
+    return results;
+  }
 }
+
 
 module.exports = OkxBasisArbitrage;

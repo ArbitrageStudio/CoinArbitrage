@@ -6,6 +6,7 @@ const TradeExecutor = require('./src/utils/execution');
 async function main() {
   const symbolsEnv = process.env.ARBITRAGE_SYMBOLS || 'BTC-USDT,ETH-USDT';
   const symbols = symbolsEnv.split(',').map(s => s.trim()).filter(Boolean);
+  console.log(symbols);
   const holdHours = parseFloat(process.env.BASIS_HOLD_HOURS || '8');
 
   const arbitrage = new OkxBasisArbitrage();
@@ -14,12 +15,15 @@ async function main() {
   for (const sym of symbols) {
     try {
       console.log(`🔍 分析 ${sym} 基差`);
-      const plan = await arbitrage.analyzeSymbols(sym, { holdHours });
-      if (!plan) {
+      const plans = await arbitrage.analyzeSymbol(sym, holdHours);
+      const plan = plans[0];  // 取数组第一个元素（单个符号的计划）
+      if (!plans) {
         console.log(`⚠️ ${sym} 未生成计划`);
         continue;
       }
       
+      console.log(plan);
+
       
       if (!plan.feasible) {
         console.log(`❎ ${sym} 计划不可行（净利不足阈值或为负）`);

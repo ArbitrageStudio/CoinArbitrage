@@ -8,7 +8,8 @@ class OKXApi {
     this.passphrase = passphrase;
     this.sandbox = !!sandbox;
     this.baseURL = 'https://www.okx.com';
-    
+
+    console.log('Using OKX API:', this.baseURL);
     this.client = axios.create({
       baseURL: this.baseURL,
       timeout: 10000,
@@ -345,7 +346,7 @@ class OKXApi {
     try {
       const requestPath = '/api/v5/account/balance';
       const headers = this.getHeaders('GET', requestPath);
-      
+      console.log('Request Headers:', headers);  // 添加这行打印头
       const response = await this.client.get(requestPath, { headers });
       
       if (response.data.code === '0') {

@@ -27,7 +27,9 @@ function saveState(state) {
 
 async function detectOpenBasis(executor, okx, symbol) {
   // 基准：现货余额>0 且 永续有空头持仓
+  console.log(symbol);
   const bal = await executor.getOkxSpotBalanceForSymbol(symbol);
+  console.log(bal);
   const positions = await executor.getOkxPerpPositions(symbol);
   const instId = `${symbol}-SWAP`;
   const perp = positions.find(p => p.instId === instId && Math.abs(p.pos) > 0);
@@ -63,6 +65,11 @@ async function main() {
     process.env.OKX_PASSPHRASE,
     process.env.OKX_SANDBOX === 'true'
   );
+  
+const connected = await okx.testConnection();
+console.log('OKX Connection Test:', connected ? 'Success' : 'Failed');
+
+
   const planner = new OkxBasisArbitrage();
 
   const state = loadState();
