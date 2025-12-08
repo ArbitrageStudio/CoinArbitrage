@@ -109,6 +109,7 @@ class OkxBasisArbitrage {
     for (const symbol of symbols) {
       try {
         const { spotPrice, perpPrice, fundingRate } = await this.fetchSpotAndPerp(symbol);
+        console.log(`🚀 ${symbol} 现货价格: ${spotPrice}, 永续价格: ${perpPrice}, 资金费率: ${fundingRate}`);
         const basisPct = this.computeBasis(spotPrice, perpPrice);
         const plan = this.buildPlan(symbol, spotPrice, perpPrice, basisPct, fundingRate, holdHours);
         results.push(plan);

@@ -13,6 +13,8 @@
     "basis:close": "node okx_basis_close.js",
     "basis:risk": "node okx_basis_risk.js",
     "basis:manager": "node okx_basis_manager.js",
+    "arb:advanced": "node advanced_arbitrage_cli.js",
+    "arb:stat": "node stat_arb_sampler.js",
     "lighter:wsdemo": "node lighter_ws_demo.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -83,6 +83,7 @@ console.log('OKX Connection Test:', connected ? 'Success' : 'Failed');
           try {
             const plans = await planner.analyzeSymbols([sym], holdHoursDefault);
             const plan = plans && plans[0];
+            // console.log(`🚀 ${sym} 检测计划：`, plan);
             if (plan && plan.feasible) {
               const res = await executor.executeOkxBasisPlan(plan);
               if (res && res.ok) {
