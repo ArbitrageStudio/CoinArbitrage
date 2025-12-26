@@ -42,7 +42,8 @@ class BinanceApi {
   // 获取ticker价格信息
   async getTicker(symbol) {
     try {
-      const response = await this.client.get(`/api/v3/ticker/24hr?symbol=${symbol}`);
+      const binanceSymbol = String(symbol).replace('-', ''); // 允许传入 BTC-USDT
+      const response = await this.client.get(`/api/v3/ticker/24hr?symbol=${binanceSymbol}`);
       
       if (response.data) {
         const ticker = response.data;

@@ -61,6 +61,34 @@ const REALTIME_CONFIG = {
 2. **配置文件默认值**
 3. **代码硬编码值**
 
+### 高级分析与统计套利
+```bash
+# 一次性生成高级分析报告（统计套利、三角套利）
+npm run arb:advanced
+
+# 周期采样并入库历史，输出统计套利信号
+npm run arb:stat
+```
+- 报告来源：`advanced_arbitrage_cli.js`，基于 OKX / Binance / Hyperliquid 行情生成 JSON 报告
+- 历史积累：`stat_arb_sampler.js` 每次采样会将价格历史持久化到项目根目录 `.stat_history.json`
+- 统计信号要求：至少 20 个历史数据点后开始产生稳定的 Z-score 信号
+- 采样参数：
+  - `ARBITRAGE_SYMBOLS`（默认 `BTC-USDT,ETH-USDT,SOL-USDT`）
+  - `SAMPLER_INTERVAL_MS`（默认 `3000`）
+  - `SAMPLER_RUN_MS`（默认 `0` 表示持续运行）
+
+### 年化守护策略（可选实盘）
+```bash
+# 在波动中维持最低年化收益、控制回撤
+npm run basis:yield
+```
+- 策略入口：`yield_guard.js`，当计划可行且年化达标并通过滑点检查时开/补腿；不达标或触发止损/止盈/资金费窗口则闭环
+- 环境变量：
+  - `TARGET_APR_MIN`（最低年化目标，例如 `10`）
+  - `EXIT_APR_MIN`（退出年化阈值，例如 `2`）
+  - `BASIS_HOLD_HOURS`、`STOP_LOSS_PCT`、`TAKE_PROFIT_PCT`、`MAX_SLIPPAGE_PCT`
+  - `ENABLE_AUTO_TRADE=true` 且 `AUTO_TRADE_DRY_RUN=false` 才会提交真实订单
+
 ## 📊 监控功能
 
 ### 实时监控命令
