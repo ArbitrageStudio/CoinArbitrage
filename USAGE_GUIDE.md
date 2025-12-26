@@ -103,6 +103,68 @@ ARBITRAGE_SYMBOLS="BTC-USDT,ETH-USDT" node realtime_monitor.js
 MIN_PROFIT_THRESHOLD=0.2 node realtime_monitor.js
 ```
 
+## 🧭 命令参考（scripts）
+
+### 通用
+- `npm start` / `npm run start`
+  - 作用：运行主程序入口 `index.js`（数据获取与分析示例）
+  - 参数：无（使用 `.env` 与默认配置）
+- `npm run dev`
+  - 作用：以 `--watch` 方式运行 `index.js`（开发模式）
+  - 参数：无
+
+### 实时监控
+- `npm run monitor`
+  - 作用：运行 `realtime_monitor.js`，通过 WebSocket 实时发现跨所套利机会
+  - CLI 参数：
+    - `--help` 显示帮助
+    - `--stop` 停止监控
+    - `--status` 显示当前状态
+    - `--set-threshold=0.5` 设置最小利润阈值（百分比）
+  - 环境变量：`ARBITRAGE_SYMBOLS`、`MIN_PROFIT_THRESHOLD`
+
+### 自动交易（干跑示例）
+- `npm run dryrun`
+  - 作用：运行 `dry_run_demo.js`，以干跑形式演示自动交易执行入口
+  - 环境变量（脚本内有默认值）：`ENABLE_AUTO_TRADE`、`AUTO_TRADE_DRY_RUN`、`ORDER_USDT_SIZE`、`AUTO_TRADE_MIN_PROFIT`
+
+### OKX 基差套利（现货 vs 永续）
+- `npm run basis:dryrun`
+  - 作用：运行 `okx_basis_dryrun.js`，仅生成并输出计划，验证可行性，不下单
+  - 环境变量：`ARBITRAGE_SYMBOLS`、`BASIS_HOLD_HOURS`、`OKX_SPOT_FEE`、`OKX_PERP_FEE`、`ORDER_USDT_SIZE`、`BASIS_MIN_PROFIT` 或 `AUTO_TRADE_MIN_PROFIT`
+- `npm run basis:sandbox`
+  - 作用：运行 `okx_basis_trade.js`，在 OKX 沙盒环境按市价下单（严格风控）
+  - 必需：`OKX_SANDBOX=true`、`ENABLE_AUTO_TRADE=true`
+  - 建议：`AUTO_TRADE_DRY_RUN=false` 才会下单
+  - 环境变量：`ARBITRAGE_SYMBOLS`、`BASIS_HOLD_HOURS`、`ORDER_USDT_SIZE`
+- `npm run basis:close`
+  - 作用：运行 `okx_basis_close.js`，对每个交易对执行闭环（先平永续，后卖出现货）
+  - 环境变量：`ARBITRAGE_SYMBOLS`
+- `npm run basis:risk`
+  - 作用：运行 `okx_basis_risk.js`，在资金费窗口前按规则平掉可能支付正资金费的永续腿
+  - 环境变量：`ARBITRAGE_SYMBOLS`、`FUNDING_CLOSE_BEFORE_MINUTES`
+- `npm run basis:manager`
+  - 作用：运行 `okx_basis_manager.js`，连续管理：自动开仓/资金费风控/持有时长闭环/止损止盈
+  - 环境变量：`ARBITRAGE_SYMBOLS`、`BASIS_HOLD_HOURS`、`BASIS_STOP_LOSS_PCT`、`BASIS_TAKE_PROFIT_PCT`、`MANAGER_CHECK_INTERVAL_MS`、`MANAGER_RUN_MS`、`ENABLE_AUTO_TRADE`、`AUTO_TRADE_DRY_RUN`
+- `npm run basis:yield`
+  - 作用：运行 `yield_guard.js`，以年化目标与滑点风控执行/补腿与闭环
+  - 环境变量：`TARGET_APR_MIN`、`EXIT_APR_MIN`、`BASIS_HOLD_HOURS`、`STOP_LOSS_PCT`、`TAKE_PROFIT_PCT`、`MAX_SLIPPAGE_PCT`、`ENABLE_AUTO_TRADE`、`AUTO_TRADE_DRY_RUN`
+
+### 高级分析与统计套利
+- `npm run arb:advanced`
+  - 作用：运行 `advanced_arbitrage_cli.js`，生成统计套利与三角套利分析报告（JSON 输出）
+  - 环境变量：`ARBITRAGE_SYMBOLS`（默认 `BTC-USDT,ETH-USDT,SOL-USDT`）
+  - 历史来源：若存在 `.stat_history.json`，将在分析前加载以提升信号稳定性
+- `npm run arb:stat`
+  - 作用：运行 `stat_arb_sampler.js`，周期采样并累计历史，同时输出统计套利信号
+  - 环境变量：`ARBITRAGE_SYMBOLS`、`SAMPLER_INTERVAL_MS`（默认 `3000`）、`SAMPLER_RUN_MS`（默认 `0` 持续运行）
+  - 历史存储：项目根目录 `.stat_history.json`，每键最多保留 100 点
+
+### Lighter 演示
+- `npm run lighter:wsdemo`
+  - 作用：运行 `lighter_ws_demo.js`，演示 Lighter WebSocket 与订单簿处理
+  - 参数/环境：依赖 Lighter API 的配置（参见 `lighter_api_usage.md`）
+
 ### 监控输出示例
 ```
 🌐 启动加密货币实时套利监控...
