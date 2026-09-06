@@ -33,11 +33,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zeuszeng/CoinArbitrage.git"
+    "url": "https://github.com/ArbitrageStudio/CoinArbitrage.git"
   },
-  "homepage": "https://github.com/zeuszeng/CoinArbitrage#readme",
+  "homepage": "https://github.com/ArbitrageStudio/CoinArbitrage#readme",
   "bugs": {
-    "url": "https://github.com/zeuszeng/CoinArbitrage/issues"
+    "url": "https://github.com/ArbitrageStudio/CoinArbitrage/issues"
   },
   "dependencies": {
     "axios": "^1.6.0",

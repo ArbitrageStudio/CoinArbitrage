@@ -44,7 +44,7 @@ CoinArbitrage/
 ## Installation
 
 ```bash
-git clone https://github.com/zeuszeng/CoinArbitrage.git
+git clone https://github.com/ArbitrageStudio/CoinArbitrage.git
 cd CoinArbitrage
 npm install
 ```
