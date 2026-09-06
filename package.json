@@ -24,11 +24,21 @@
     "arbitrage",
     "okx",
     "binance",
+    "hyperliquid",
     "trading",
+    "websocket",
     "price-comparison"
   ],
-  "author": "",
+  "author": "zeuszeng",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zeuszeng/CoinArbitrage.git"
+  },
+  "homepage": "https://github.com/zeuszeng/CoinArbitrage#readme",
+  "bugs": {
+    "url": "https://github.com/zeuszeng/CoinArbitrage/issues"
+  },
   "dependencies": {
     "axios": "^1.6.0",
     "crypto": "^1.0.1",

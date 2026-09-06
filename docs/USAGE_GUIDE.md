@@ -1,301 +1,337 @@
-# 📖 加密货币套利系统 - 使用指南
+# 📖 Cryptocurrency Arbitrage System - Usage Guide
 
-## 🚀 快速开始
+> Chinese version: [USAGE_GUIDE.zh-CN.md](./USAGE_GUIDE.zh-CN.md)
 
-### 1. 环境准备
+## 🚀 Quick Start
+
+### 1. Environment Setup
+
 ```bash
-# 安装依赖
+# Install dependencies
 npm install
 
-# 复制环境变量文件
+# Copy the environment variable template
 cp .env.example .env
 ```
 
-### 2. 配置环境变量
-编辑 `.env` 文件：
+### 2. Configure Environment Variables
+
+Edit `.env`:
+
 ```env
-# 监控的交易对（逗号分隔）
+# Symbols to monitor (comma-separated)
 ARBITRAGE_SYMBOLS="BTC-USDT,ETH-USDT,SOL-USDT"
 
-# 最小利润阈值（百分比）
+# Minimum profit threshold (percentage)
 MIN_PROFIT_THRESHOLD=0.1
 
-# 交易所配置（true/false）
+# Exchange flags (true/false)
 BINANCE_ENABLED=true
-OKX_ENABLED=true  
+OKX_ENABLED=true
 HYPERLIQUID_ENABLED=true
 ```
 
-### 3. 启动实时监控
+### 3. Start Real-Time Monitoring
+
 ```bash
-# 启动实时套利监控
+# Start real-time arbitrage monitoring
 node scripts/realtime_monitor.js
 
-# 或者使用npm脚本
+# Or use the npm script
 npm run monitor
 ```
 
-## ⚙️ 配置说明
+## ⚙️ Configuration
 
-### 核心配置文件
-主要配置在 `src/config/arbitrageConfig.js`：
+### Core Config File
+
+The main configuration lives in `src/config/arbitrageConfig.js`:
 
 ```javascript
-// 默认监控交易对
+// Default symbols to monitor
 const DEFAULT_SYMBOLS = ['BTC-USDT', 'ETH-USDT', 'SOL-USDT'];
 
-// 最小利润阈值（0.1%）
+// Minimum profit threshold (0.1%)
 const DEFAULT_MIN_PROFIT_THRESHOLD = 0.1;
 
-// 实时检测配置
+// Realtime detection config
 const REALTIME_CONFIG = {
-  checkInterval: 2000,        // 检查间隔2秒
-  priceCacheTTL: 10000,      // 价格缓存10秒
-  maxOpportunityAge: 30000    // 机会有效期30秒
+  checkInterval: 2000,        // check every 2 seconds
+  priceCacheTTL: 10000,       // price cache 10 seconds
+  maxOpportunityAge: 30000    // opportunity valid for 30 seconds
 };
 ```
 
-### 环境变量优先级
-系统按以下优先级读取配置：
-1. **环境变量** (最高优先级)
-2. **配置文件默认值**
-3. **代码硬编码值**
+### Environment Variable Precedence
 
-### 高级分析与统计套利
+The system reads configuration in the following order:
+
+1. **Environment variables** (highest priority)
+2. **Config file defaults**
+3. **Hard-coded values**
+
+### Advanced Analysis & Statistical Arbitrage
+
 ```bash
-# 一次性生成高级分析报告（统计套利、三角套利）
+# Generate a one-shot advanced analysis report (statistical & triangular arbitrage)
 npm run arb:advanced
 
-# 周期采样并入库历史，输出统计套利信号
+# Periodically sample and persist history, then output statistical arbitrage signals
 npm run arb:stat
 ```
-- 报告来源：`advanced_arbitrage_cli.js`，基于 OKX / Binance / Hyperliquid 行情生成 JSON 报告
-- 历史积累：`stat_arb_sampler.js` 每次采样会将价格历史持久化到项目根目录 `.stat_history.json`
-- 统计信号要求：至少 20 个历史数据点后开始产生稳定的 Z-score 信号
-- 采样参数：
-  - `ARBITRAGE_SYMBOLS`（默认 `BTC-USDT,ETH-USDT,SOL-USDT`）
-  - `SAMPLER_INTERVAL_MS`（默认 `3000`）
-  - `SAMPLER_RUN_MS`（默认 `0` 表示持续运行）
 
-### 年化守护策略（可选实盘）
+- Report source: `scripts/advanced_arbitrage_cli.js`, generates a JSON report from OKX / Binance / Hyperliquid market data.
+- History accumulation: `scripts/stat_arb_sampler.js` persists price history to `.stat_history.json` in the project root on every sample.
+- Signal requirements: at least 20 historical data points are needed before stable Z-score signals appear.
+- Sampling parameters:
+  - `ARBITRAGE_SYMBOLS` (default `BTC-USDT,ETH-USDT,SOL-USDT`)
+  - `SAMPLER_INTERVAL_MS` (default `3000`)
+  - `SAMPLER_RUN_MS` (default `0` = run forever)
+
+### Annualized Yield Guard Strategy (optional live trading)
+
 ```bash
-# 在波动中维持最低年化收益、控制回撤
+# Maintain a minimum annualized return while controlling drawdown
 npm run basis:yield
 ```
-- 策略入口：`yield_guard.js`，当计划可行且年化达标并通过滑点检查时开/补腿；不达标或触发止损/止盈/资金费窗口则闭环
-- 环境变量：
-  - `TARGET_APR_MIN`（最低年化目标，例如 `10`）
-  - `EXIT_APR_MIN`（退出年化阈值，例如 `2`）
-  - `BASIS_HOLD_HOURS`、`STOP_LOSS_PCT`、`TAKE_PROFIT_PCT`、`MAX_SLIPPAGE_PCT`
-  - `ENABLE_AUTO_TRADE=true` 且 `AUTO_TRADE_DRY_RUN=false` 才会提交真实订单
 
-## 📊 监控功能
+- Entry point: `scripts/yield_guard.js`. Opens/completes legs when the plan is feasible, meets the APR target, and passes the slippage check; closes the position when targets are not met or a stop-loss / take-profit / funding window is triggered.
+- Environment variables:
+  - `TARGET_APR_MIN` (minimum annualized target, e.g. `10`)
+  - `EXIT_APR_MIN` (exit APR threshold, e.g. `2`)
+  - `BASIS_HOLD_HOURS`, `STOP_LOSS_PCT`, `TAKE_PROFIT_PCT`, `MAX_SLIPPAGE_PCT`
+  - Real orders are only placed when `ENABLE_AUTO_TRADE=true` and `AUTO_TRADE_DRY_RUN=false`
 
-### 实时监控命令
+## 📊 Monitoring
+
+### Real-Time Monitoring Commands
+
 ```bash
-# 基本监控
+# Basic monitoring
 node scripts/realtime_monitor.js
 
-# 指定交易对监控
+# Monitor specific symbols
 ARBITRAGE_SYMBOLS="BTC-USDT,ETH-USDT" node scripts/realtime_monitor.js
 
-# 自定义利润阈值  
+# Custom profit threshold
 MIN_PROFIT_THRESHOLD=0.2 node scripts/realtime_monitor.js
 ```
 
-## 🧭 命令参考（scripts）
+## 🧭 Command Reference (npm scripts)
 
-### 通用
+### General
+
 - `npm start` / `npm run start`
-  - 作用：运行主程序入口 `index.js`（数据获取与分析示例）
-  - 参数：无（使用 `.env` 与默认配置）
+  - Runs the main entry point `index.js` (data fetching and analysis example).
+  - Arguments: none (uses `.env` and defaults).
 - `npm run dev`
-  - 作用：以 `--watch` 方式运行 `index.js`（开发模式）
-  - 参数：无
+  - Runs `index.js` with `--watch` (development mode).
+  - Arguments: none.
 
-### 实时监控
+### Real-Time Monitoring
+
 - `npm run monitor`
-  - 作用：运行 `realtime_monitor.js`，通过 WebSocket 实时发现跨所套利机会
-  - CLI 参数：
-    - `--help` 显示帮助
-    - `--stop` 停止监控
-    - `--status` 显示当前状态
-    - `--set-threshold=0.5` 设置最小利润阈值（百分比）
-  - 环境变量：`ARBITRAGE_SYMBOLS`、`MIN_PROFIT_THRESHOLD`
+  - Runs `scripts/realtime_monitor.js`, discovering cross-exchange arbitrage opportunities in real time over WebSocket.
+  - CLI arguments:
+    - `--help` show help
+    - `--stop` stop monitoring
+    - `--status` show current status
+    - `--set-threshold=0.5` set the minimum profit threshold (percentage)
+  - Environment variables: `ARBITRAGE_SYMBOLS`, `MIN_PROFIT_THRESHOLD`
 
-### 自动交易（干跑示例）
+### Auto-Trading (Dry-Run Example)
+
 - `npm run dryrun`
-  - 作用：运行 `dry_run_demo.js`，以干跑形式演示自动交易执行入口
-  - 环境变量（脚本内有默认值）：`ENABLE_AUTO_TRADE`、`AUTO_TRADE_DRY_RUN`、`ORDER_USDT_SIZE`、`AUTO_TRADE_MIN_PROFIT`
+  - Runs `scripts/dry_run_demo.js`, demonstrating the auto-trade entry point in dry-run mode.
+  - Environment variables (with in-script defaults): `ENABLE_AUTO_TRADE`, `AUTO_TRADE_DRY_RUN`, `ORDER_USDT_SIZE`, `AUTO_TRADE_MIN_PROFIT`
 
-### OKX 基差套利（现货 vs 永续）
+### OKX Basis Arbitrage (Spot vs Perpetual)
+
 - `npm run basis:dryrun`
-  - 作用：运行 `okx_basis_dryrun.js`，仅生成并输出计划，验证可行性，不下单
-  - 环境变量：`ARBITRAGE_SYMBOLS`、`BASIS_HOLD_HOURS`、`OKX_SPOT_FEE`、`OKX_PERP_FEE`、`ORDER_USDT_SIZE`、`BASIS_MIN_PROFIT` 或 `AUTO_TRADE_MIN_PROFIT`
+  - Runs `scripts/okx_basis_dryrun.js`, generating and printing plans only (validates feasibility, no orders).
+  - Environment variables: `ARBITRAGE_SYMBOLS`, `BASIS_HOLD_HOURS`, `OKX_SPOT_FEE`, `OKX_PERP_FEE`, `ORDER_USDT_SIZE`, `BASIS_MIN_PROFIT` or `AUTO_TRADE_MIN_PROFIT`
 - `npm run basis:sandbox`
-  - 作用：运行 `okx_basis_trade.js`，在 OKX 沙盒环境按市价下单（严格风控）
-  - 必需：`OKX_SANDBOX=true`、`ENABLE_AUTO_TRADE=true`
-  - 建议：`AUTO_TRADE_DRY_RUN=false` 才会下单
-  - 环境变量：`ARBITRAGE_SYMBOLS`、`BASIS_HOLD_HOURS`、`ORDER_USDT_SIZE`
+  - Runs `scripts/okx_basis_trade.js`, placing market orders on the OKX sandbox (strict risk control).
+  - Required: `OKX_SANDBOX=true`, `ENABLE_AUTO_TRADE=true`
+  - Recommended: `AUTO_TRADE_DRY_RUN=false` to actually place orders
+  - Environment variables: `ARBITRAGE_SYMBOLS`, `BASIS_HOLD_HOURS`, `ORDER_USDT_SIZE`
 - `npm run basis:close`
-  - 作用：运行 `okx_basis_close.js`，对每个交易对执行闭环（先平永续，后卖出现货）
-  - 环境变量：`ARBITRAGE_SYMBOLS`
+  - Runs `scripts/okx_basis_close.js`, closing both legs for each symbol (perp first, then spot).
+  - Environment variables: `ARBITRAGE_SYMBOLS`
 - `npm run basis:risk`
-  - 作用：运行 `okx_basis_risk.js`，在资金费窗口前按规则平掉可能支付正资金费的永续腿
-  - 环境变量：`ARBITRAGE_SYMBOLS`、`FUNDING_CLOSE_BEFORE_MINUTES`
+  - Runs `scripts/okx_basis_risk.js`, closing the perp leg before the funding window when it would pay positive funding.
+  - Environment variables: `ARBITRAGE_SYMBOLS`, `FUNDING_CLOSE_BEFORE_MINUTES`
 - `npm run basis:manager`
-  - 作用：运行 `okx_basis_manager.js`，连续管理：自动开仓/资金费风控/持有时长闭环/止损止盈
-  - 环境变量：`ARBITRAGE_SYMBOLS`、`BASIS_HOLD_HOURS`、`BASIS_STOP_LOSS_PCT`、`BASIS_TAKE_PROFIT_PCT`、`MANAGER_CHECK_INTERVAL_MS`、`MANAGER_RUN_MS`、`ENABLE_AUTO_TRADE`、`AUTO_TRADE_DRY_RUN`
+  - Runs `scripts/okx_basis_manager.js`, continuously managing positions: auto-open / funding risk control / hold-duration close / stop-loss & take-profit.
+  - Environment variables: `ARBITRAGE_SYMBOLS`, `BASIS_HOLD_HOURS`, `BASIS_STOP_LOSS_PCT`, `BASIS_TAKE_PROFIT_PCT`, `MANAGER_CHECK_INTERVAL_MS`, `MANAGER_RUN_MS`, `ENABLE_AUTO_TRADE`, `AUTO_TRADE_DRY_RUN`
 - `npm run basis:yield`
-  - 作用：运行 `yield_guard.js`，以年化目标与滑点风控执行/补腿与闭环
-  - 环境变量：`TARGET_APR_MIN`、`EXIT_APR_MIN`、`BASIS_HOLD_HOURS`、`STOP_LOSS_PCT`、`TAKE_PROFIT_PCT`、`MAX_SLIPPAGE_PCT`、`ENABLE_AUTO_TRADE`、`AUTO_TRADE_DRY_RUN`
+  - Runs `scripts/yield_guard.js`, executing/completing legs and closing positions based on APR targets and slippage risk control.
+  - Environment variables: `TARGET_APR_MIN`, `EXIT_APR_MIN`, `BASIS_HOLD_HOURS`, `STOP_LOSS_PCT`, `TAKE_PROFIT_PCT`, `MAX_SLIPPAGE_PCT`, `ENABLE_AUTO_TRADE`, `AUTO_TRADE_DRY_RUN`
 
-### 高级分析与统计套利
+### Advanced Analysis & Statistical Arbitrage
+
 - `npm run arb:advanced`
-  - 作用：运行 `advanced_arbitrage_cli.js`，生成统计套利与三角套利分析报告（JSON 输出）
-  - 环境变量：`ARBITRAGE_SYMBOLS`（默认 `BTC-USDT,ETH-USDT,SOL-USDT`）
-  - 历史来源：若存在 `.stat_history.json`，将在分析前加载以提升信号稳定性
+  - Runs `scripts/advanced_arbitrage_cli.js`, generating a statistical & triangular arbitrage report (JSON output).
+  - Environment variables: `ARBITRAGE_SYMBOLS` (default `BTC-USDT,ETH-USDT,SOL-USDT`)
+  - History source: if `.stat_history.json` exists, it is loaded before analysis to improve signal stability.
 - `npm run arb:stat`
-  - 作用：运行 `stat_arb_sampler.js`，周期采样并累计历史，同时输出统计套利信号
-  - 环境变量：`ARBITRAGE_SYMBOLS`、`SAMPLER_INTERVAL_MS`（默认 `3000`）、`SAMPLER_RUN_MS`（默认 `0` 持续运行）
-  - 历史存储：项目根目录 `.stat_history.json`，每键最多保留 100 点
+  - Runs `scripts/stat_arb_sampler.js`, sampling periodically, accumulating history, and outputting statistical arbitrage signals.
+  - Environment variables: `ARBITRAGE_SYMBOLS`, `SAMPLER_INTERVAL_MS` (default `3000`), `SAMPLER_RUN_MS` (default `0` = run forever)
+  - History storage: `.stat_history.json` in the project root, up to 100 points per key.
 
-### Lighter 演示
+### Lighter Demo
+
 - `npm run lighter:wsdemo`
-  - 作用：运行 `lighter_ws_demo.js`，演示 Lighter WebSocket 与订单簿处理
-  - 参数/环境：依赖 Lighter API 的配置（参见 `lighter_api_usage.md`）
+  - Runs `scripts/lighter_ws_demo.js`, demonstrating the Lighter WebSocket and order book handling.
+  - Args/env: depends on Lighter API configuration (see `lighter_api_usage.md`).
 
-### 监控输出示例
+### Monitoring Output Example
+
 ```
-🌐 启动加密货币实时套利监控...
-📊 监控交易对: BTC-USDT, ETH-USDT, SOL-USDT
-⚡ 检测频率: 毫秒级 (WebSocket实时数据)
-💡 最小利润阈值: 0.3%
-⏰ 开始时间: 2025/10/31 下午3:18:12
+🌐 Starting cryptocurrency real-time arbitrage monitoring...
+📊 Monitoring symbols: BTC-USDT, ETH-USDT, SOL-USDT
+⚡ Detection frequency: milliseconds (WebSocket real-time data)
+💡 Minimum profit threshold: 0.3%
+⏰ Start time: 2025/10/31 3:18:12 PM
 ============================================================
-🚀 启动实时套利检测...
-🌐 连接Binance WebSocket...
-✅ binance WebSocket连接成功
-🌐 连接OKX WebSocket...
-✅ okx WebSocket连接成功
-🌐 连接Hyperliquid WebSocket...
-✅ hyperliquid WebSocket连接成功
+🚀 Starting real-time arbitrage detection...
+🌐 Connecting to Binance WebSocket...
+✅ binance WebSocket connected
+🌐 Connecting to OKX WebSocket...
+✅ okx WebSocket connected
+🌐 Connecting to Hyperliquid WebSocket...
+✅ hyperliquid WebSocket connected
 ```
 
-## 🎯 套利机会通知
+## 🎯 Arbitrage Opportunity Notification
 
-### 机会显示格式
-```
-🎯 发现套利机会！
-📈 利润: 0.45%
-🔄 路径: Binance → OKX
-💰 交易对: BTC-USDT
-🕒 时间: 2025-01-31 15:20:30
-📊 买价: $42,100.50 (Binance)
-📊 卖价: $42,290.25 (OKX)
-💸 价差: $189.75
-```
+### Opportunity Display Format
 
-### 高利润机会
-当利润超过0.5%时显示为：
 ```
-🚀 高利润套利机会！
-📈 利润: 0.78%
-🔄 路径: Hyperliquid → Binance
-💰 交易对: ETH-USDT
-⚠️ 注意: 需要快速执行！
+🎯 Arbitrage opportunity found!
+📈 Profit: 0.45%
+🔄 Path: Binance → OKX
+💰 Symbol: BTC-USDT
+🕒 Time: 2025-01-31 15:20:30
+📊 Buy price: $42,100.50 (Binance)
+📊 Sell price: $42,290.25 (OKX)
+💸 Spread: $189.75
 ```
 
-## 🔧 高级配置
+### High-Profit Opportunities
 
-### 自定义交易对
-在 `.env` 文件中添加：
+When profit exceeds 0.5%:
+
+```
+🚀 High-profit arbitrage opportunity!
+📈 Profit: 0.78%
+🔄 Path: Hyperliquid → Binance
+💰 Symbol: ETH-USDT
+⚠️ Note: execute quickly!
+```
+
+## 🔧 Advanced Configuration
+
+### Custom Symbols
+
+Add to `.env`:
+
 ```env
 ARBITRAGE_SYMBOLS="BTC-USDT,ETH-USDT,XRP-USDT,LTC-USDT,ADA-USDT"
 ```
 
-### 调整检测频率
-修改 `src/config/arbitrageConfig.js`：
+### Adjust Detection Frequency
+
+Edit `src/config/arbitrageConfig.js`:
+
 ```javascript
 const REALTIME_CONFIG = {
-  checkInterval: 1000,        // 降低到1秒（更频繁）
-  priceCacheTTL: 5000,       // 缓存5秒
-  maxOpportunityAge: 15000   // 机会有效期15秒
+  checkInterval: 1000,        // lower to 1 second (more frequent)
+  priceCacheTTL: 5000,        // 5-second cache
+  maxOpportunityAge: 15000    // opportunity valid for 15 seconds
 };
 ```
 
-### 禁用特定交易所
-在 `.env` 文件中设置：
+### Disable Specific Exchanges
+
+Set in `.env`:
+
 ```env
-# 禁用OKX交易所
+# Disable OKX
 OKX_ENABLED=false
 
-# 只使用Binance
+# Use Binance only
 BINANCE_ENABLED=true
 OKX_ENABLED=false
 HYPERLIQUID_ENABLED=false
 ```
 
-## 🤖 自动下单（可选）
+## 🤖 Auto-Trading (Optional)
 
-默认不开启自动下单，开启方式如下：
+Auto-trading is disabled by default. To enable it:
 
-1) 在 `.env` 中开启并设置参数：
+1) Enable and configure in `.env`:
+
 ```env
-ENABLE_AUTO_TRADE=true          # 开启自动下单
-AUTO_TRADE_DRY_RUN=true         # 干跑模式，仅打印不下单（建议先开启）
-ORDER_USDT_SIZE=50              # 每次交易使用的USDT金额
-AUTO_TRADE_MIN_PROFIT=0.5       # 仅当机会利润超过该阈值才下单
-AUTO_TRADE_COOLDOWN_MS=15000    # 同一交易对下单冷却时间，毫秒
+ENABLE_AUTO_TRADE=true          # enable auto-trading
+AUTO_TRADE_DRY_RUN=true         # dry-run mode: print only, no orders (start here)
+ORDER_USDT_SIZE=50              # USDT amount per trade
+AUTO_TRADE_MIN_PROFIT=0.5       # only trade when profit exceeds this threshold
+AUTO_TRADE_COOLDOWN_MS=15000    # cooldown per symbol, in milliseconds
 ```
 
-2) 确保已正确配置交易所密钥且具备交易权限：
+2) Make sure exchange keys are configured and have trading permissions:
+
 - `BINANCE_API_KEY`, `BINANCE_SECRET_KEY`
 - `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE`
 
-3) 启动实时监控后，系统在检测到满足阈值的机会时将：
-- 在买方交易所以市价按 USDT 金额买入（Binance 支持 `quoteOrderQty`，OKX 使用 `tgtCcy=quote_ccy`）。
-- 在卖方交易所以市价按买入数量卖出。
-- 冷却时间内对同一交易对不重复下单。
+3) Once real-time monitoring is running, when an opportunity above the threshold is detected the system will:
 
-4) 风险与注意事项：
-- 市价单可能产生滑点和手续费误差，建议从 `AUTO_TRADE_DRY_RUN=true` 验证流程开始。
-- Binance 的卖出市价单需要指定 `quantity`；若精度或 LOT_SIZE 不匹配可能报错。
-- OKX 现货市价买入按 USDT 金额下单需 `tdMode=cash` 且 `tgtCcy=quote_ccy`。
-- Hyperliquid 的自动交易暂未集成，当前仅用于价格与机会检测。
+- Market-buy on the buy exchange by USDT amount (Binance uses `quoteOrderQty`, OKX uses `tgtCcy=quote_ccy`).
+- Market-sell the filled quantity on the sell exchange.
+- Skip repeated orders for the same symbol within the cooldown window.
 
-## 🧪 OKX 单所基差套利（干跑验证）
+4) Risks and notes:
 
-用于验证 OKX 现货-永续基差套利（买现货、做空永续）的可行性与潜在净收益。
+- Market orders can incur slippage and fee errors; start with `AUTO_TRADE_DRY_RUN=true` to validate the flow.
+- Binance sell market orders require a `quantity`; precision or `LOT_SIZE` mismatches may cause errors.
+- OKX spot market buys by USDT amount require `tdMode=cash` and `tgtCcy=quote_ccy`.
+- Hyperliquid auto-trading is not yet integrated; it is currently used only for price and opportunity detection.
 
-- 启动命令：`npm run basis:dryrun`
-- 配置项：
-  - `ARBITRAGE_SYMBOLS`（或在 `src/config/arbitrageConfig.js` 中设置）
-  - `BASIS_HOLD_HOURS`（默认 `8`，对应一个资金费周期）
-  - `OKX_SPOT_FEE`（默认 `0.001`，即 0.1%）
-  - `OKX_PERP_FEE`（默认 `0.0005`，即 0.05%）
-  - `ORDER_USDT_SIZE`（默认 `50`，用于估算规模）
-  - `BASIS_MIN_PROFIT` 或 `AUTO_TRADE_MIN_PROFIT`（最低净利百分比阈值）
+## 🧪 OKX Single-Exchange Basis Arbitrage (Dry-Run Validation)
 
-输出包含：现货价、永续价、基差百分比、资金费估算、手续费估算、预期净利与净利百分比；标记 `✅ 可行计划` 表示净利百分比超过你设定的阈值。
+Validates the feasibility and potential net profit of OKX spot-perpetual basis arbitrage (buy spot, short perpetual).
 
-说明：
-- 这是干跑验证，不会提交真实订单；真实执行需要另行实现 OKX 永续下单与仓位管理。
-- 资金费率是每 8 小时的周期费率，脚本采用线性近似作为验证参考。
-- 建议先在 OKX 沙盒环境用小额受控范围做真下单验证，再迁移到实盘。
+- Command: `npm run basis:dryrun`
+- Configuration:
+  - `ARBITRAGE_SYMBOLS` (or set in `src/config/arbitrageConfig.js`)
+  - `BASIS_HOLD_HOURS` (default `8`, one funding cycle)
+  - `OKX_SPOT_FEE` (default `0.001`, i.e. 0.1%)
+  - `OKX_PERP_FEE` (default `0.0005`, i.e. 0.05%)
+  - `ORDER_USDT_SIZE` (default `50`, used to estimate size)
+  - `BASIS_MIN_PROFIT` or `AUTO_TRADE_MIN_PROFIT` (minimum net-profit percentage threshold)
 
-### 🧪→🧰 沙盒真单执行（OKX 永续）
+Output includes: spot price, perp price, basis percentage, funding estimate, fee estimate, expected net profit, and net profit percentage. A `✅ Feasible plan` marker means the net profit percentage exceeds your configured threshold.
 
-- 启动命令：`npm run basis:sandbox`
-- 前置要求：
-  - `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` 已配置
-  - `OKX_SANDBOX=true`（启用模拟交易头 `x-simulated-trading: 1`）
-  - 如需仅观察，不下真单：保留 `AUTO_TRADE_DRY_RUN=true`
-- 行为说明：
-  - 脚本读取 `src/utils/intra_exchange_arbitrage.js` 生成的计划（买现货、卖永续），在沙盒环境下按市价执行。
-  - 合约张数依据 OKX 合约参数 `ctVal/lotSz/minSz` 自动换算并向下取整，避免最小张数限制报错。
+Notes:
 
-示例环境变量：
+- This is a dry-run validation; no real orders are placed. Real execution requires OKX perpetual order placement and position management.
+- The funding rate is an 8-hour periodic rate; the script uses a linear approximation for reference.
+- It is recommended to first place real orders in the OKX sandbox with a small, controlled size before going live.
+
+### 🧪→🧰 Sandbox Real-Order Execution (OKX Perpetual)
+
+- Command: `npm run basis:sandbox`
+- Prerequisites:
+  - `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` configured
+  - `OKX_SANDBOX=true` (enables the simulated-trading header `x-simulated-trading: 1`)
+  - To observe without placing orders, keep `AUTO_TRADE_DRY_RUN=true`
+- Behavior:
+  - The script reads the plan generated by `src/utils/intra_exchange_arbitrage.js` (buy spot, sell perpetual) and executes it at market price in the sandbox.
+  - Contract counts are converted from OKX instrument parameters `ctVal/lotSz/minSz` and rounded down to avoid minimum-size errors.
+
+Example environment variables:
+
 ```env
 OKX_SANDBOX=true
 ENABLE_AUTO_TRADE=true
@@ -304,191 +340,170 @@ ORDER_USDT_SIZE=50
 ARBITRAGE_SYMBOLS=BTC-USDT,ETH-USDT
 ```
 
-注意：
-- 合约张数计算需拉取 `public/instruments` 参数，若 `ORDER_USDT_SIZE` 极小可能低于 `minSz` 而被拒绝。
-- 初次验证建议小额、分批次执行，并观察资金费率影响与成交回报结构。
+Notes:
 
-### 🔄 闭环与风控（仓位查询 / 平仓 / 资金费）
+- Contract-size calculation requires the `public/instruments` parameters; if `ORDER_USDT_SIZE` is too small it may fall below `minSz` and be rejected.
+- For initial validation, use a small size and split into batches, observing funding impact and fill structure.
 
-- 仓位查询与闭环：
-  - 关闭两腿：`npm run basis:close`
-  - 说明：先平永续、再卖出现货余额，避免敞口扩大。
-- 资金费风控：
-  - 提前在资金费前平掉可能支付资金费的空头：`npm run basis:risk`
-  - 环境变量：`FUNDING_CLOSE_BEFORE_MINUTES=5`
-  - 规则：若永续持空且 `fundingRate > 0` 并临近资金费时间（≤阈值分钟），则执行平仓。
+### Slippage Check & Liquidity Validation
 
-注意：
-- OKX 现货余额读取依赖 `account/balance` 的 `details.ccy`，若资产不足则跳过现货腿。
-- 永续仓位读取依赖 `account/positions?instType=SWAP&instId=...`，若无持仓则跳过永续腿。
+When auto-executing a basis arbitrage plan, the system queries OKX spot/perpetual order book depth before placing orders and estimates expected slippage:
 
-### 滑点检查与流动性验证
-在自动执行基差套利计划时，系统现在会在下单前查询 OKX 现货/永续订单簿深度，计算预期滑点：
-- 若总滑点（现货 + 永续）超过阈值（默认 0.5%），则跳过执行。
-- 环境变量：`MAX_SLIPPAGE_PCT=0.5`（可自定义阈值百分比）。
+- If total slippage (spot + perp) exceeds the threshold (default 0.5%), execution is skipped.
+- Environment variable: `MAX_SLIPPAGE_PCT=0.5` (customizable threshold percentage).
 
-此功能确保在高波动市场中避免过度滑点导致实际利润低于预期。
+This helps avoid excessive slippage in volatile markets where the actual profit would fall below expectations.
 
-- 启动命令：`npm run basis:sandbox`
-- 前置要求：
-  - `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` 已配置
-  - `OKX_SANDBOX=true`（启用模拟交易头 `x-simulated-trading: 1`）
-  - 如需仅观察，不下真单：保留 `AUTO_TRADE_DRY_RUN=true`
-- 行为说明：
-  - 脚本读取 `src/utils/intra_exchange_arbitrage.js` 生成的计划（买现货、卖永续），在沙盒环境下按市价执行。
-  - 合约张数依据 OKX 合约参数 `ctVal/lotSz/minSz` 自动换算并向下取整，避免最小张数限制报错。
+### 🔄 Closing & Risk Control (Position Query / Close / Funding)
 
-示例环境变量：
-```env
-OKX_SANDBOX=true
-ENABLE_AUTO_TRADE=true
-AUTO_TRADE_DRY_RUN=false
-ORDER_USDT_SIZE=50
-ARBITRAGE_SYMBOLS=BTC-USDT,ETH-USDT
-```
+- Position query & closing:
+  - Close both legs: `npm run basis:close`
+  - Note: closes the perpetual first, then sells the spot balance, to avoid increasing exposure.
+- Funding risk control:
+  - Close the short perp leg before funding when it would pay positive funding: `npm run basis:risk`
+  - Environment variable: `FUNDING_CLOSE_BEFORE_MINUTES=5`
+  - Rule: if holding a short perp with `fundingRate > 0` and the next funding time is within the threshold minutes, close the perp leg.
 
-注意：
-- 合约张数计算需拉取 `public/instruments` 参数，若 `ORDER_USDT_SIZE` 极小可能低于 `minSz` 而被拒绝。
-- 初次验证建议小额、分批次执行，并观察资金费率影响与成交回报结构。
+Notes:
 
-### 🔄 闭环与风控（仓位查询 / 平仓 / 资金费）
+- OKX spot balance reads depend on `account/balance` `details.ccy`; if assets are insufficient, the spot leg is skipped.
+- Perpetual position reads depend on `account/positions?instType=SWAP&instId=...`; if there is no position, the perp leg is skipped.
 
-- 仓位查询与闭环：
-  - 关闭两腿：`npm run basis:close`
-  - 说明：先平永续、再卖出现货余额，避免敞口扩大。
-- 资金费风控：
-  - 提前在资金费前平掉可能支付资金费的空头：`npm run basis:risk`
-  - 环境变量：`FUNDING_CLOSE_BEFORE_MINUTES=5`
-  - 规则：若永续持空且 `fundingRate > 0` 并临近资金费时间（≤阈值分钟），则执行平仓。
+### 🧭 Manager Script (Continuous Management & Auto-Close)
 
-注意：
-- OKX 现货余额读取依赖 `account/balance` 的 `details.ccy`，若资产不足则跳过现货腿。
-- 永续仓位读取依赖 `account/positions?instType=SWAP&instId=...`，若无持仓则跳过永续腿。
+- Command: `npm run basis:manager`
+- Function: polls `ARBITRAGE_SYMBOLS` at a fixed interval and performs "auto-open + continuous management + auto-close" for OKX spot+perp basis:
+  - Funding-window risk control: if short perp with `fundingRate > 0` and the next funding is within the threshold minutes, close the perp leg early.
+  - Hold-duration close: after reaching `BASIS_HOLD_HOURS`, close the perp first, then sell spot — a full close.
+  - Stop-loss / take-profit: roughly calculates net profit rate from current spot/perp prices and auto-closes when the stop-loss or take-profit threshold is triggered.
+  - Auto-open: when the basis plan is feasible (`feasible=true`) and auto-trading is enabled, market-buys spot and shorts perpetual, sized by `ORDER_USDT_SIZE`.
 
-### 🧭 经理脚本（连续管理与自动闭环）
+Environment variables:
 
-- 命令：`npm run basis:manager`
-- 功能：按固定周期巡检 `ARBITRAGE_SYMBOLS`，对 OKX 现货+永续基差进行“自动开仓 + 连续管理 + 自动闭环”：
-  - 资金费窗口风控：若永续为空且 `fundingRate > 0` 且距离下一次资金费 ≤ 阈值分钟，则提前平掉永续腿。
-  - 持有时长闭环：达到 `BASIS_HOLD_HOURS` 后自动先平永续、再卖出现货，完整闭环。
-  - 止损/止盈：依据当前现货/永续价格粗略计算净利润率，触发止损或止盈阈值时自动闭环。
-  - 自动开仓：当基差计划可行（`feasible=true`）且启用自动交易时，自动按市价买现货、做空永续，规模取 `ORDER_USDT_SIZE`。
+- `ARBITRAGE_SYMBOLS`: e.g. `BTC-USDT,ETH-USDT`
+- `BASIS_HOLD_HOURS`: auto-close after this hold duration, default `8`
+- `FUNDING_CLOSE_BEFORE_MINUTES`: how many minutes before funding to close the perp, default `5`
+- `BASIS_STOP_LOSS_PCT`: stop-loss percentage (net-profit-rate threshold, negative direction), default `0` = disabled
+- `BASIS_TAKE_PROFIT_PCT`: take-profit percentage (net-profit-rate threshold), default `0` = disabled
+- `MANAGER_CHECK_INTERVAL_MS`: polling interval in ms, default `60000`
+- `MANAGER_RUN_MS`: run duration in ms, default `0` = run forever
+- `ENABLE_AUTO_TRADE`: enable auto-trading (for auto-open), default `false`
+- `AUTO_TRADE_DRY_RUN`: dry-run mode (print plan without ordering), default `true`
 
-环境变量：
-- `ARBITRAGE_SYMBOLS`: 例 `BTC-USDT,ETH-USDT`
-- `BASIS_HOLD_HOURS`: 达到持有时长后自动闭环，默认 `8`
-- `FUNDING_CLOSE_BEFORE_MINUTES`: 资金费窗口前多少分钟平永续，默认 `5`
-- `BASIS_STOP_LOSS_PCT`: 止损百分比（净利率阈值，负方向），默认 `0` 表示禁用
-- `BASIS_TAKE_PROFIT_PCT`: 止盈百分比（净利率阈值），默认 `0` 表示禁用
-- `MANAGER_CHECK_INTERVAL_MS`: 巡检间隔毫秒数，默认 `60000`
-- `MANAGER_RUN_MS`: 运行时长毫秒数，默认 `0` 表示持续运行
-- `ENABLE_AUTO_TRADE`: 开启自动交易（用于自动开仓），默认 `false`
-- `AUTO_TRADE_DRY_RUN`: 干跑模式（打印计划但不下单），默认 `true`
+Notes:
 
-注意事项：
-- 脚本使用本地状态文件 `.basis_state.json` 记录持仓起始时间；若你在外部平仓或账户资产变动，脚本会在巡检时同步更新并清理状态。
-- 若使用沙盒，请设置 `OKX_SANDBOX=true` 并确保 `OKX_API_KEY/SECRET_KEY/PASSPHRASE` 有效；真实环境下请谨慎评估风险与权限。
-- 自动开仓依赖 `ENABLE_AUTO_TRADE=true`；干跑模式下只打印不下单，持仓记录不会落地。
+- The script uses a local state file `.basis_state.json` to record position start times; if you close positions externally or the account balance changes, the script syncs and cleans up state on the next poll.
+- If using the sandbox, set `OKX_SANDBOX=true` and ensure `OKX_API_KEY/SECRET_KEY/PASSPHRASE` are valid; in a live environment, carefully evaluate risk and permissions.
+- Auto-open requires `ENABLE_AUTO_TRADE=true`; in dry-run mode it only prints without ordering, and position records are not persisted.
 
-## 🛠️ 故障排除
+## 🛠️ Troubleshooting
 
-### 常见问题
+### Common Issues
 
-#### 1. WebSocket连接失败
+#### 1. WebSocket Connection Failure
+
 ```bash
-# 检查网络连接
+# Check network connectivity
 ping api.binance.com
 
-# 检查防火墙设置
+# Check firewall settings
 sudo ufw status
 ```
 
-#### 2. API限制错误
+#### 2. API Rate Limit Errors
+
 ```
 Hyperliquid getTicker error: Request failed with status code 429
 ```
 
-**解决方案：**
-- 增加检查间隔时间
-- 减少监控交易对数量
-- 启用价格缓存
+**Solutions:**
 
-#### 3. 价格数据不同步
-```
-# 检查系统时间同步
+- Increase the check interval
+- Reduce the number of monitored symbols
+- Enable price caching
+
+#### 3. Out-of-Sync Price Data
+
+```bash
+# Check system time synchronization
 sudo ntpdate pool.ntp.org
 ```
 
-### 日志调试
+### Log Debugging
+
 ```bash
-# 启用详细日志
+# Enable verbose logging
 DEBUG=* node scripts/realtime_monitor.js
 
-# 仅显示错误日志  
+# Show errors only
 DEBUG=error node scripts/realtime_monitor.js
 ```
 
-## 📈 性能优化建议
+## 📈 Performance Tuning
 
-### 对于低配置服务器
+### For Low-Spec Servers
+
 ```javascript
-// 减少监控交易对
+// Fewer symbols
 ARBITRAGE_SYMBOLS="BTC-USDT,ETH-USDT"
 
-// 增加检查间隔  
+// Longer check interval
 checkInterval: 3000
 
-// 禁用非必要交易所
+// Disable non-essential exchanges
 HYPERLIQUID_ENABLED=false
 ```
 
-### 对于高频率交易
+### For High-Frequency Trading
+
 ```javascript
-// 增加监控交易对
+// More symbols
 ARBITRAGE_SYMBOLS="BTC-USDT,ETH-USDT,SOL-USDT,ADA-USDT,XRP-USDT"
 
-// 减少检查间隔
+// Shorter check interval
 checkInterval: 500
 
-// 缩短缓存时间
+// Shorter cache time
 priceCacheTTL: 2000
 ```
 
-## 🔄 系统维护
+## 🔄 System Maintenance
 
-### 定期检查
+### Periodic Checks
+
 ```bash
-# 检查依赖更新
+# Check for dependency updates
 npm outdated
 
-# 更新依赖
+# Update dependencies
 npm update
 
-# 安全检查  
+# Security audit
 npm audit
 ```
 
-### 监控系统状态
+### Monitoring System Status
+
 ```bash
-# 查看系统资源使用
+# Check resource usage
 htop
 
-# 监控网络连接
+# Monitor network connections
 netstat -tulpn
 
-# 检查日志文件
+# Check log files
 tail -f logs/arbitrage.log
 ```
 
-## 🚨 重要注意事项
+## 🚨 Important Notes
 
-1. **风险提示**: 套利交易存在风险，实际执行时需考虑滑点和手续费
-2. **API限制**: 遵守各交易所的API调用频率限制
-3. **网络延迟**: 跨交易所套利对网络延迟敏感
-4. **资金安全**: 建议使用小资金测试后再扩大规模
-5. **法律合规**: 确保所在地区加密货币交易合法
+1. **Risk**: arbitrage trading is risky; account for slippage and fees in real execution.
+2. **API limits**: respect each exchange's API rate limits.
+3. **Network latency**: cross-exchange arbitrage is latency-sensitive.
+4. **Fund safety**: start with a small amount before scaling up.
+5. **Legal compliance**: make sure cryptocurrency trading is legal in your jurisdiction.
 
 ---
 
-*最后更新: 2025年1月*  
-*如有问题，请查看日志文件或联系开发人员*
+*Last updated: January 2025*
+*If you encounter issues, check the log files or contact the developer.*

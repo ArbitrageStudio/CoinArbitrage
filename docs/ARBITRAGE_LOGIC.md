@@ -1,149 +1,158 @@
-# 加密货币套利系统 - 逻辑说明
+# Cryptocurrency Arbitrage System - Logic Overview
 
-## 🎯 系统概述
+> Chinese version: [ARBITRAGE_LOGIC.zh-CN.md](./ARBITRAGE_LOGIC.zh-CN.md)
 
-本系统是一个实时加密货币套利检测系统，通过监控多个交易所的价格差异，发现并通知潜在的套利机会。
+## 🎯 System Overview
 
-## 🔄 套利逻辑流程
+This is a real-time cryptocurrency arbitrage detection system. It monitors price differences across multiple exchanges, detects potential arbitrage opportunities, and notifies you when they appear.
 
-### 1. 数据收集阶段
+## 🔄 Arbitrage Logic Flow
+
+### 1. Data Collection
+
 ```
-交易所 WebSocket 连接 → 实时价格数据流 → 价格缓存更新
-```
-
-**支持的交易所：**
-- **Binance** - 全球最大的加密货币交易所
-- **OKX** - 专业的衍生品交易所  
-- **Hyperliquid** - 去中心化永续合约交易所
-
-### 2. 价格处理流程
-```
-实时价格数据 → 价格标准化处理 → 缓存管理 → 有效性验证
+Exchange WebSocket → real-time price stream → price cache update
 ```
 
-**价格标准化：**
-- 统一交易对格式 (如: BTC-USDT)
-- 转换为数字格式
-- 时间戳验证
+**Supported exchanges:**
 
-### 3. 套利检测算法
+- **Binance** - the largest cryptocurrency exchange
+- **OKX** - a professional derivatives exchange
+- **Hyperliquid** - a decentralized perpetual exchange
 
-#### 三角套利检测
+### 2. Price Processing
+
+```
+Real-time price data → price normalization → cache management → validity check
+```
+
+**Price normalization:**
+
+- Unify symbol format (e.g. `BTC-USDT`)
+- Convert to numeric values
+- Validate timestamps
+
+### 3. Arbitrage Detection Algorithms
+
+#### Triangular Arbitrage
+
 ```javascript
 function findTriangularArbitrage(exchangePrices) {
-  // 1. 遍历所有可能的交易对组合
-  // 2. 计算理论套利路径利润
-  // 3. 过滤低于阈值的交易机会
-  // 4. 返回高利润机会
+  // 1. Iterate over all possible trading-pair combinations
+  // 2. Calculate theoretical profit along each path
+  // 3. Filter out opportunities below the threshold
+  // 4. Return high-profit opportunities
 }
 ```
 
-#### 跨交易所套利检测
+#### Cross-Exchange Arbitrage
+
 ```javascript
 function findCrossExchangeArbitrage(prices) {
-  // 1. 比较同一交易对不同交易所的价格
-  // 2. 计算价格差异百分比
-  // 3. 考虑交易费用和滑点
-  // 4. 筛选可执行的套利机会
+  // 1. Compare the same pair across different exchanges
+  // 2. Calculate the percentage price difference
+  // 3. Account for trading fees and slippage
+  // 4. Filter executable opportunities
 }
 ```
 
-### 4. 利润计算模型
+### 4. Profit Calculation Model
 
-**利润计算公式：**
 ```
-理论利润 = (目标交易所卖价 - 源交易所买价) / 源交易所买价 * 100%
-实际利润 = 理论利润 - 交易费用 - 滑点损失
+Theoretical profit = (sell price on target exchange - buy price on source exchange) / buy price on source exchange * 100%
+Actual profit = theoretical profit - trading fees - slippage loss
 ```
 
-**考虑因素：**
-- 交易手续费 (0.1%-0.2%)
-- 网络延迟成本
-- 价格滑点风险
-- 资金转移时间
+**Considered factors:**
 
-### 5. 风险管理
+- Trading fees (0.1%-0.2%)
+- Network latency cost
+- Price slippage risk
+- Fund transfer time
 
-**风险控制机制：**
-- ✅ 最小利润阈值过滤 (默认: 0.1%)
-- ✅ 价格有效性检查 (时间戳验证)
-- ✅ API调用频率限制 (防止被封)
-- ✅ 错误重试机制
-- ✅ 连接状态监控
+### 5. Risk Management
 
-## 🏗️ 系统架构
+- ✅ Minimum profit threshold filtering (default: 0.1%)
+- ✅ Price validity checks (timestamp validation)
+- ✅ API call rate limiting (to avoid being banned)
+- ✅ Error retry mechanism
+- ✅ Connection state monitoring
 
-### 核心模块
+## 🏗️ System Architecture
 
-1. **API连接层** (`src/api/`)
-   - `binance.js` - Binance交易所API
-   - `okx.js` - OKX交易所API  
-   - `hyperliquid.js` - Hyperliquid交易所API
-   - `websocket.js` - WebSocket连接管理
+### Core Modules
 
-2. **套利引擎** (`src/utils/`)
-   - `realtime_arbitrage.js` - 实时套利检测核心
-   - `arbitrage.js` - 基础套利算法
-   - `advanced_arbitrage.js` - 高级套利策略
-   - `slippage.js` - 滑点计算模型
-   - `ml_predictor.js` - 机器学习价格预测
+1. **API layer** (`src/api/`)
+   - `binance.js` - Binance exchange API
+   - `okx.js` - OKX exchange API
+   - `hyperliquid.js` - Hyperliquid exchange API
+   - `websocket.js` - WebSocket connection management
 
-3. **配置管理** (`src/config/`)
-   - `arbitrageConfig.js` - 系统配置中心
+2. **Arbitrage engine** (`src/utils/`)
+   - `realtime_arbitrage.js` - real-time arbitrage detection core
+   - `arbitrage.js` - basic arbitrage algorithms
+   - `advanced_arbitrage.js` - advanced arbitrage strategies
+   - `slippage.js` - slippage calculation model
+   - `ml_predictor.js` - ML-based price prediction
 
-### 数据流架构
+3. **Configuration** (`src/config/`)
+   - `arbitrageConfig.js` - system configuration center
+
+### Data Flow
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  交易所WebSocket  │ →  │   价格缓存管理   │ →  │   套利检测引擎   │
+│ Exchange WS feed │ →  │  Price cache      │ →  │  Arbitrage engine │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
         ↓                        ↓                        ↓
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ 实时价格数据流   │    │ 缓存有效性验证   │    │ 机会过滤与排序   │
+│ Real-time prices │    │ Cache validation │    │ Filter & sort     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
         ↓                        ↓                        ↓
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ 错误处理重试    │    │ 频率限制控制    │    │ 结果通知输出    │
+│ Error retry      │    │ Rate limiting    │    │ Notification      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## ⚡ 性能优化
+## ⚡ Performance Optimizations
 
-### 缓存策略
-- **价格缓存TTL**: 10秒
-- **API调用间隔**: 2秒  
-- **智能缓存更新**: 仅在实际价格变化时更新
+### Caching
 
-### 频率控制
-- **WebSocket重连**: 自动指数退避
-- **API调用队列**: 请求排队管理
-- **速率限制**: 遵守交易所API限制
+- **Price cache TTL**: 10 seconds
+- **API call interval**: 2 seconds
+- **Smart cache updates**: only update when the actual price changes
 
-## 🎪 功能特性
+### Rate Control
 
-### 已实现功能
-- ✅ 多交易所实时价格监控
-- ✅ 跨交易所套利检测
-- ✅ 利润自动计算
-- ✅ 实时机会通知
-- ✅ 配置化交易对管理
-- ✅ 智能错误恢复
-- ✅ 频率限制保护
+- **WebSocket reconnect**: automatic exponential backoff
+- **API call queue**: queued request management
+- **Rate limiting**: respects exchange API limits
 
-### 高级功能
-- 🔄 机器学习价格预测
-- 📊 滑点模拟计算  
-- 🔔 多通道通知系统
-- ⚙️ 动态配置热更新
+## 🎪 Features
 
-## 🔧 技术栈
+### Implemented
 
-- **运行时**: Node.js + JavaScript
-- **网络**: WebSocket + REST API
-- **数据处理**: 实时流处理
-- **缓存**: 内存缓存策略
-- **监控**: 连接状态健康检查
+- ✅ Multi-exchange real-time price monitoring
+- ✅ Cross-exchange arbitrage detection
+- ✅ Automatic profit calculation
+- ✅ Real-time opportunity notification
+- ✅ Configurable symbol management
+- ✅ Intelligent error recovery
+- ✅ Rate-limit protection
+
+### Advanced
+
+- 🔄 ML price prediction
+- 📊 Slippage simulation
+- 🔔 Multi-channel notification
+- ⚙️ Dynamic configuration
+
+## 🔧 Tech Stack
+
+- **Runtime**: Node.js + JavaScript
+- **Network**: WebSocket + REST API
+- **Data processing**: real-time stream processing
+- **Cache**: in-memory caching
+- **Monitoring**: connection health checks
 
 ---
-
-*最后更新: 2025年10月*
