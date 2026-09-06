@@ -98,8 +98,8 @@ class MLPricePredictor {
   }
 
   getRSISignal(rsi) {
-    if (rsi > 70) return 'OVERSOLD';
-    if (rsi < 30) return 'OVERBOUGHT';
+    if (rsi > 70) return 'OVERBOUGHT';
+    if (rsi < 30) return 'OVERSOLD';
     return 'NEUTRAL';
   }
 

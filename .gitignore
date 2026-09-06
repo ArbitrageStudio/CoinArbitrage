@@ -15,6 +15,10 @@ yarn-error.log*
 logs
 *.log
 
+# 运行时状态文件（由脚本生成，勿提交）
+.stat_history.json
+.basis_state.json
+
 # 运行时数据
 pids
 *.pid

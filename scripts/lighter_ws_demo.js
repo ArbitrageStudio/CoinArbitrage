@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const LighterApi = require('./src/api/lighter');
+const LighterApi = require('../src/api/lighter');
 
 async function main() {
   const marketIndex = parseInt(process.env.LIGHTER_MARKET_INDEX || '0');

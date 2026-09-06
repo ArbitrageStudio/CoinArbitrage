@@ -1,42 +1,11 @@
 require('dotenv').config();
 
-const OKXApi = require('./src/api/okx');
-const BinanceApi = require('./src/api/binance');
-const HyperliquidApi = require('./src/api/hyperliquid');
-const AdvancedArbitrageCalculator = require('./src/utils/advanced_arbitrage');
-const fs = require('fs');
+const AdvancedArbitrageCalculator = require('../src/utils/advanced_arbitrage');
+const { loadJsonState, saveJsonState } = require('../src/utils/stateStore');
+const { fetchTickers } = require('../src/utils/marketData');
 const path = require('path');
 
 const STATE_FILE = path.join(process.cwd(), '.stat_history.json');
-
-function loadState() {
-  try {
-    if (!fs.existsSync(STATE_FILE)) return {};
-    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')) || {};
-  } catch {
-    return {};
-  }
-}
-
-function saveState(state) {
-  try {
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-  } catch {}
-}
-
-async function fetchTickers(okx, binance, hyperliquid, symbols) {
-  const binanceSymbols = symbols.map(s => s.replace('-', ''));
-  const [okxTickers, binanceRawTickers, hyperliquidTickers] = await Promise.all([
-    okx.getMultipleTickers(symbols),
-    binance.getMultipleTickers(binanceSymbols),
-    hyperliquid.getMultipleTickers(symbols)
-  ]);
-  const binanceTickers = (binanceRawTickers || []).map(t => ({
-    ...t,
-    symbol: String(t.symbol).replace(/USDT$/, '-USDT')
-  }));
-  return { okxTickers, binanceTickers, hyperliquidTickers };
-}
 
 function addHistory(calc, exchange, tickers) {
   tickers.forEach(t => {
@@ -47,14 +16,14 @@ function addHistory(calc, exchange, tickers) {
 }
 
 function persistFromCalc(calc) {
-  const state = loadState();
+  const state = loadJsonState(STATE_FILE);
   calc.priceHistory.forEach((arr, key) => {
     if (!Array.isArray(state[key])) state[key] = [];
     const merged = [...state[key], ...arr];
     const trimmed = merged.slice(Math.max(0, merged.length - 100));
     state[key] = trimmed;
   });
-  saveState(state);
+  saveJsonState(STATE_FILE, state);
 }
 
 function outputSignals(calc, symbols) {
@@ -86,23 +55,11 @@ async function main() {
   const intervalMs = parseInt(process.env.SAMPLER_INTERVAL_MS || '3000');
   const runMs = parseInt(process.env.SAMPLER_RUN_MS || '0');
 
-  const okx = new OKXApi(
-    process.env.OKX_API_KEY,
-    process.env.OKX_SECRET_KEY,
-    process.env.OKX_PASSPHRASE,
-    process.env.OKX_SANDBOX === 'true'
-  );
-  const binance = new BinanceApi(
-    process.env.BINANCE_API_KEY,
-    process.env.BINANCE_SECRET_KEY,
-    process.env.BINANCE_TESTNET === 'true'
-  );
-  const hyperliquid = new HyperliquidApi();
   const calc = new AdvancedArbitrageCalculator();
 
   async function tick() {
     try {
-      const { okxTickers, binanceTickers, hyperliquidTickers } = await fetchTickers(okx, binance, hyperliquid, symbols);
+      const { okxTickers, binanceTickers, hyperliquidTickers } = await fetchTickers(symbols);
       addHistory(calc, 'OKX', okxTickers);
       addHistory(calc, 'Binance', binanceTickers);
       addHistory(calc, 'Hyperliquid', hyperliquidTickers);

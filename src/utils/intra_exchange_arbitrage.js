@@ -31,11 +31,9 @@ class OkxBasisArbitrage {
       this.okx.getFuturesTicker(normalized),
       this.okx.getFundingRate(normalized)
     ]);
-    // console.log(spot, perp, funding);
     const spotPrice = spot?.price || parseFloat(spot?.lastTradedPrice || spot?.price || 0);
     const perpPrice = perp?.price || parseFloat(perp?.lastTradedPrice || perp?.price || 0);
     const fundingRate = parseFloat(funding?.fundingRate || 0); // 单次 8 小时资金费率
-    // console.log(spotPrice, perpPrice, fundingRate);
     return { spotPrice: Number(spotPrice), perpPrice: Number(perpPrice), fundingRate };
   }
 
@@ -91,16 +89,14 @@ class OkxBasisArbitrage {
 
   async analyzeSymbol(symbol, holdHours = parseFloat(process.env.BASIS_HOLD_HOURS || '8')) {
     const results = [];
-    // for (const symbol of symbols) {
-      try {
-        const { spotPrice, perpPrice, fundingRate } = await this.fetchSpotAndPerp(symbol);
-        const basisPct = this.computeBasis(spotPrice, perpPrice);
-        const plan = this.buildPlan(symbol, spotPrice, perpPrice, basisPct, fundingRate, holdHours);
-        results.push(plan);
-      } catch (err) {
-        results.push({ strategy: 'okx_spot_perp_basis', symbol, error: err.message });
-      }
-    // }
+    try {
+      const { spotPrice, perpPrice, fundingRate } = await this.fetchSpotAndPerp(symbol);
+      const basisPct = this.computeBasis(spotPrice, perpPrice);
+      const plan = this.buildPlan(symbol, spotPrice, perpPrice, basisPct, fundingRate, holdHours);
+      results.push(plan);
+    } catch (err) {
+      results.push({ strategy: 'okx_spot_perp_basis', symbol, error: err.message });
+    }
     return results;
   }
 

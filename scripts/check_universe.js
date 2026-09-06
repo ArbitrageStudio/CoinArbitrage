@@ -1,4 +1,4 @@
-const HyperliquidApi = require('./src/api/hyperliquid');
+const HyperliquidApi = require('../src/api/hyperliquid');
 
 // 创建Hyperliquid API实例
 const hyperliquid = new HyperliquidApi();

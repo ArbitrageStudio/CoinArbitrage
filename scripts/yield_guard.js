@@ -1,9 +1,9 @@
 require('dotenv').config();
 
-const TradeExecutor = require('./src/utils/execution');
-const OKXApi = require('./src/api/okx');
-const OkxBasisArbitrage = require('./src/utils/intra_exchange_arbitrage');
-const SlippageCalculator = require('./src/utils/slippage');
+const TradeExecutor = require('../src/utils/execution');
+const OKXApi = require('../src/api/okx');
+const OkxBasisArbitrage = require('../src/utils/intra_exchange_arbitrage');
+const SlippageCalculator = require('../src/utils/slippage');
 
 function aprFromNetPct(netPct, holdHours) {
   const periods = (365 * 24) / holdHours;

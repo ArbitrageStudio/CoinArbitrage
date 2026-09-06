@@ -6,7 +6,7 @@ process.env.AUTO_TRADE_DRY_RUN = 'true';
 process.env.ORDER_USDT_SIZE = process.env.ORDER_USDT_SIZE || '50';
 process.env.AUTO_TRADE_MIN_PROFIT = process.env.AUTO_TRADE_MIN_PROFIT || '0.1';
 
-const TradeExecutor = require('./src/utils/execution');
+const TradeExecutor = require('../src/utils/execution');
 
 async function main() {
   console.log('🧪 运行干跑验证：不会提交真实订单');

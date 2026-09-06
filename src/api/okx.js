@@ -55,7 +55,6 @@ class OKXApi {
       
       if (response.data.code === '0' && response.data.data.length > 0) {
         const ticker = response.data.data[0];
-        // console.log(ticker);
         return {
           symbol: ticker.instId,
           price: parseFloat(ticker.last),
@@ -87,7 +86,6 @@ class OKXApi {
       
       if (response.data.code === '0' && response.data.data.length > 0) {
         const ticker = response.data.data[0];
-        // console.log(ticker);
         return {
           symbol: symbol, // 保持原始格式便于比较
           price: parseFloat(ticker.last),
@@ -303,7 +301,6 @@ class OKXApi {
       
       if (response.data.code === '0' && response.data.data.length > 0) {
         const fundingData = response.data.data[0];
-        // console.log(fundingData);
         return {
           symbol: swapSymbol,
           originalSymbol: symbol,
@@ -348,7 +345,6 @@ class OKXApi {
       const headers = this.getHeaders('GET', requestPath);
       // console.log('Request Headers:', headers);  // 添加这行打印头
       const response = await this.client.get(requestPath, { headers });
-      
       if (response.data.code === '0') {
         return response.data.data;
       } else {

@@ -361,7 +361,7 @@ class CoinArbitrage {
 
   // 显示套利报告
   displayReport(report) {
-    '\n' + '='.repeat(60);
+    console.log('\n' + '='.repeat(60));
     console.log('📈 加密货币套利机会报告');
     console.log('='.repeat(60));
     console.log(`生成时间: ${report.生成时间}`);

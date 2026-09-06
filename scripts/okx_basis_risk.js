@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const TradeExecutor = require('./src/utils/execution');
+const TradeExecutor = require('../src/utils/execution');
 
 async function main() {
   const symbolsEnv = process.env.ARBITRAGE_SYMBOLS || 'BTC-USDT,ETH-USDT';

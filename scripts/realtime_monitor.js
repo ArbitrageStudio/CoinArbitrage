@@ -1,5 +1,5 @@
 require('dotenv').config();
-const RealtimeArbitrageDetector = require('./src/utils/realtime_arbitrage');
+const RealtimeArbitrageDetector = require('../src/utils/realtime_arbitrage');
 
 class RealTimeMonitor {
   constructor() {

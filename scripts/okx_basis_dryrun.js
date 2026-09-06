@@ -1,11 +1,10 @@
 require('dotenv').config();
-const OkxBasisArbitrage = require('./src/utils/intra_exchange_arbitrage');
-const arbitrageConfig = require('./src/config/arbitrageConfig');
+const OkxBasisArbitrage = require('../src/utils/intra_exchange_arbitrage');
+const arbitrageConfig = require('../src/config/arbitrageConfig');
 
 async function main() {
   console.log('🧪 OKX 现货-永续基差套利 干跑验证启动');
-  const config = arbitrageConfig;
-  const symbols = config.symbols || (process.env.ARBITRAGE_SYMBOLS || 'BTC-USDT,ETH-USDT').split(',');
+  const symbols = arbitrageConfig.getSymbols();
   const holdHours = parseFloat(process.env.BASIS_HOLD_HOURS || '8');
 
   const analyzer = new OkxBasisArbitrage();
@@ -32,7 +31,6 @@ async function main() {
   if (infeasiblePlans.length) {
     console.log('⚠️ 不可行计划（仅供参考）:');
     for (const plan of infeasiblePlans) {
-      // console.log('🚀', plan);
       if (plan.error) {
         console.log('❌ 错误:', plan.symbol, plan.error);
       } else {

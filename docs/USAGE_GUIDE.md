@@ -29,7 +29,7 @@ HYPERLIQUID_ENABLED=true
 ### 3. 启动实时监控
 ```bash
 # 启动实时套利监控
-node realtime_monitor.js
+node scripts/realtime_monitor.js
 
 # 或者使用npm脚本
 npm run monitor
@@ -94,13 +94,13 @@ npm run basis:yield
 ### 实时监控命令
 ```bash
 # 基本监控
-node realtime_monitor.js
+node scripts/realtime_monitor.js
 
 # 指定交易对监控
-ARBITRAGE_SYMBOLS="BTC-USDT,ETH-USDT" node realtime_monitor.js
+ARBITRAGE_SYMBOLS="BTC-USDT,ETH-USDT" node scripts/realtime_monitor.js
 
 # 自定义利润阈值  
-MIN_PROFIT_THRESHOLD=0.2 node realtime_monitor.js
+MIN_PROFIT_THRESHOLD=0.2 node scripts/realtime_monitor.js
 ```
 
 ## 🧭 命令参考（scripts）
@@ -422,10 +422,10 @@ sudo ntpdate pool.ntp.org
 ### 日志调试
 ```bash
 # 启用详细日志
-DEBUG=* node realtime_monitor.js
+DEBUG=* node scripts/realtime_monitor.js
 
 # 仅显示错误日志  
-DEBUG=error node realtime_monitor.js
+DEBUG=error node scripts/realtime_monitor.js
 ```
 
 ## 📈 性能优化建议

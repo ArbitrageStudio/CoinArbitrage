@@ -1,4 +1,4 @@
-const CoinArbitrage = require('./index.js');
+const CoinArbitrage = require('../index.js');
 
 // 模拟数据用于测试套利分析
 const mockData = {

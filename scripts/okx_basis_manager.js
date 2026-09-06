@@ -1,35 +1,16 @@
 require('dotenv').config();
 
-const fs = require('fs');
 const path = require('path');
-const TradeExecutor = require('./src/utils/execution');
-const OKXApi = require('./src/api/okx');
-const OkxBasisArbitrage = require('./src/utils/intra_exchange_arbitrage');
+const TradeExecutor = require('../src/utils/execution');
+const OKXApi = require('../src/api/okx');
+const OkxBasisArbitrage = require('../src/utils/intra_exchange_arbitrage');
+const { loadJsonState, saveJsonState } = require('../src/utils/stateStore');
 
 const STATE_FILE = path.join(process.cwd(), '.basis_state.json');
 
-function loadState() {
-  try {
-    if (!fs.existsSync(STATE_FILE)) return {};
-    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')) || {};
-  } catch {
-    return {};
-  }
-}
-
-function saveState(state) {
-  try {
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-  } catch (e) {
-    console.error('保存状态失败:', e.message);
-  }
-}
-
 async function detectOpenBasis(executor, okx, symbol) {
   // 基准：现货余额>0 且 永续有空头持仓
-  console.log(symbol);
   const bal = await executor.getOkxSpotBalanceForSymbol(symbol);
-  console.log(bal);
   const positions = await executor.getOkxPerpPositions(symbol);
   const instId = `${symbol}-SWAP`;
   const perp = positions.find(p => p.instId === instId && Math.abs(p.pos) > 0);
@@ -65,14 +46,13 @@ async function main() {
     process.env.OKX_PASSPHRASE,
     process.env.OKX_SANDBOX === 'true'
   );
-  
-const connected = await okx.testConnection();
-console.log('OKX Connection Test:', connected ? 'Success' : 'Failed');
 
+  const connected = await okx.testConnection();
+  console.log('OKX Connection Test:', connected ? 'Success' : 'Failed');
 
   const planner = new OkxBasisArbitrage();
 
-  const state = loadState();
+  const state = loadJsonState(STATE_FILE);
 
   async function tick() {
     for (const sym of symbols) {
@@ -83,7 +63,6 @@ console.log('OKX Connection Test:', connected ? 'Success' : 'Failed');
           try {
             const plans = await planner.analyzeSymbols([sym], holdHoursDefault);
             const plan = plans && plans[0];
-            // console.log(`🚀 ${sym} 检测计划：`, plan);
             if (plan && plan.feasible) {
               const res = await executor.executeOkxBasisPlan(plan);
               if (res && res.ok) {
@@ -149,7 +128,7 @@ console.log('OKX Connection Test:', connected ? 'Success' : 'Failed');
       } catch (err) {
         console.error(`❌ 管理 ${sym} 失败:`, err.message);
       } finally {
-        saveState(state);
+        saveJsonState(STATE_FILE, state);
       }
     }
   }

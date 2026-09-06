@@ -1,5 +1,5 @@
-const AdvancedArbitrageCalculator = require('./src/utils/advanced_arbitrage.js');
-const MLPricePredictor = require('./src/utils/ml_predictor.js');
+const AdvancedArbitrageCalculator = require('../src/utils/advanced_arbitrage.js');
+const MLPricePredictor = require('../src/utils/ml_predictor.js');
 
 // 创建更真实的模拟数据
 const mockData = {

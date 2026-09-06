@@ -14,14 +14,21 @@
 ```
 CoinArbitrage/
 ├── src/
-│   ├── api/          # API集成模块
-│   ├── utils/        # 工具函数
-│   └── config/       # 配置文件
-├── index.js          # 主程序入口
-├── package.json      # 项目配置
-├── .env.example      # 环境变量示例
-└── README.md         # 项目说明
+│   ├── api/              # 交易所 API 集成（OKX / Binance / Hyperliquid / Lighter / WebSocket）
+│   ├── config/           # 套利配置
+│   └── utils/            # 套利计算、滑点、执行、实时检测、ML 预测、共享工具
+├── scripts/              # 命令行入口脚本（监控、基差套利、采样、演示等）
+├── test/                 # 测试脚本
+├── docs/                 # 文档（使用指南、套利逻辑说明、Lighter 用法）
+├── index.js              # 主程序入口（跨所价差分析）
+├── package.json          # 项目配置与 npm 脚本
+├── .env.example          # 环境变量示例
+└── README.md             # 项目说明
 ```
+
+- 命令行脚本统一放在 `scripts/`，通过 `npm run <script>` 调用（见 `package.json`）
+- 测试脚本统一放在 `test/`
+- 更详细的命令与环境变量说明见 [docs/USAGE_GUIDE.md](./docs/USAGE_GUIDE.md)
 
 ## 安装和使用
 

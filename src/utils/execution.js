@@ -13,6 +13,7 @@ class TradeExecutor {
     this.orderUsdtSize = parseFloat(process.env.ORDER_USDT_SIZE || '50');
     this.minProfitForTrade = parseFloat(process.env.AUTO_TRADE_MIN_PROFIT || arbitrageConfig.getMinProfitThreshold());
     this.tradeCooldownMs = parseInt(process.env.AUTO_TRADE_COOLDOWN_MS || '15000');
+    this.maxSlippage = parseFloat(process.env.MAX_SLIPPAGE_PCT || '0.5');
 
     // 初始化API客户端
     this.okx = new OKXApi(
@@ -284,13 +285,9 @@ class TradeExecutor {
       const perpLeg = plan.legs.find(l => l.market === 'perpetual' && l.exchange === 'okx');
       if (!spotLeg || !perpLeg) return { skipped: true, reason: 'missing_legs' };
 
-      // 在 constructor 中添加
-      this.maxSlippage = parseFloat(process.env.MAX_SLIPPAGE_PCT || '0.5');
-      
-      // 在 executeOkxBasisPlan 中，干跑检查后添加滑点检查
       // 计算数量
       const quantity = Number(plan.quantity || (this.orderUsdtSize / plan.spotPrice));
-      
+
       // 滑点检查
       const okxOptions = {
         apiKey: this.okx.apiKey,
@@ -313,7 +310,6 @@ class TradeExecutor {
         return { skipped: true, reason: 'slippage_too_high' };
       }
       
-      // 继续执行订单...
       const spotRes = await this.placeOkxSpotMarket(plan.symbol, spotLeg.side, {
         usdtAmount: spotLeg.side === 'buy' ? this.orderUsdtSize : undefined,
         quantity: spotLeg.side === 'sell' ? quantity : undefined

@@ -1,5 +1,5 @@
 require('dotenv').config();
-const RealtimeArbitrageDetector = require('./src/utils/realtime_arbitrage');
+const RealtimeArbitrageDetector = require('../src/utils/realtime_arbitrage');
 
 async function testRealtimeArbitrage() {
   console.log('🚀 测试实时套利检测（包含Binance、OKX、Hyperliquid）...\n');
